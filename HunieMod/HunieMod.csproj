@@ -62,11 +62,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseHunieModPlugin.cs" />
+    <Compile Include="CensorshipPatches.cs" />
+    <Compile Include="CheatPatches.cs" />
     <Compile Include="Data\Definitions.cs" />
     <Compile Include="Enums\LocationId.cs" />
     <Compile Include="Enums\GirlId.cs" />
     <Compile Include="Extensions\GirlExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SpeedrunPatches.cs" />
     <Compile Include="StaticCoroutine.cs" />
     <Compile Include="Utility\GameUtil.cs" />
   </ItemGroup>

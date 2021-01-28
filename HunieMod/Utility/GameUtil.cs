@@ -7,6 +7,7 @@ using BepInEx;
 using GM = GameManager;
 using HarmonyLib;
 using UnityEngine;
+using System.IO;
 
 namespace HunieMod
 {
@@ -25,25 +26,36 @@ namespace HunieMod
         /// <returns><c>True</c> when the session was ended, <c>false</c> when ending the session was blocked due to the game's current state.</returns>
         public static bool EndGameSession(bool saveGame = true, bool revertDates = true, bool triggerValediction = true)
         {
-            if (GM.System == null || GM.System.GameState == GameState.TITLE || GM.System.GameState == GameState.LOADING || !GM.System.Location.IsLocationSettled())
-                return false;
-
             if (!GM.System.Player.tutorialComplete || GetAvailableGirls(availableOnly: false, excludeCurrentGirl: false).Count == 0)
             {
                 ShowNotification(CellNotificationType.MESSAGE, "Cannot leave the tutorial");
                 return false;
             }
 
-            GM.Stage.uiTop.buttonHuniebee.interactive = false;
-            GM.Stage.SetPausable(false);
+            //base HunieMod could just use Input.GetMouseButtonDown(0) I think
+            if (SpeedrunPatches.mouseDown)
+            {
+                ShowNotification(CellNotificationType.MESSAGE, "Cannot leave with the mouse button clicked");
+                return false;
+            }
+
+            if (GM.System == null || GM.System.GameState == GameState.TITLE || GM.System.GameState == GameState.LOADING || !GM.System.Location.IsLocationSettled()
+                || (GM.System.Location.currentLocation.type == LocationType.NORMAL && !GM.Stage.uiWindows.IsDefaultWindowActive(true)))
+            {
+                ShowNotification(CellNotificationType.MESSAGE, "Cannot leave unless you could use the Girl Finder");
+                return false;
+            }
             if (GM.Stage.cellPhone.IsOpen())
-                ShowCellPhone(false, true);
+            {
+                ShowNotification(CellNotificationType.MESSAGE, "Cannot leave with the HunieBee open");
+                return false;
+            }
 
             if (GM.System.GameState == GameState.PUZZLE)
             {
-                if (GM.System.Puzzle.Game.puzzleGameState == PuzzleGameState.COMPLETE || GM.System.Puzzle.Game.puzzleGameState == PuzzleGameState.FINISHED)
+                if (GM.System.Puzzle.Game.puzzleGameState != PuzzleGameState.WAITING)
                 {
-                    ShowNotification(CellNotificationType.MESSAGE, "Not a good time to leave");
+                    ShowNotification(CellNotificationType.MESSAGE, "Can only leave when you could make a move");
                     return false;
                 }
                 if (saveGame)
@@ -53,12 +65,19 @@ namespace HunieMod
                     if (returnTo != null)
                         GM.System.Player.currentLocation = returnTo;
                 }
+                //SpeedrunPatches.returningToMenuDuringPuzzle = true;
                 HidePuzzleGame(true);
             }
             else
             {
                 GM.Stage.uiGirl.stats.localY = UIGirl.GIRL_STATS_HIDDEN_Y_POS;
             }
+
+            GM.Stage.uiTop.buttonHuniebee.interactive = false;
+
+            GM.Stage.SetPausable(false);
+            if (GM.Stage.cellPhone.IsOpen())
+                ShowCellPhone(false, true);
 
             ClearActiveDialogScene();
             GM.Stage.altGirl.girlPieceContainers.localX = -GameCamera.SCREEN_DEFAULT_WIDTH_HALF;
@@ -72,6 +91,15 @@ namespace HunieMod
 
             if (saveGame)
                 GM.System.SaveGame();
+
+            //remove blinking message icon
+            GM.System.Player.messages[0].viewed = true;
+            GM.Stage.uiTop.RefreshMessageAlert();
+            //reset cell phone defaults
+            GameManager.Stage.cellPhone.cellMemory = new Dictionary<string, int>();
+            GameManager.Stage.cellPhone.SetCellApp(GameManager.Stage.cellPhone.defaultCellApp);
+            //AccessTools.Field(typeof(UICellPhone), "_activeCellAppButton").SetValue(GameManager.Stage.cellPhone, GameManager.Stage.cellPhone.cellAppButtonContainer.GetChildByName("CellAppButton0") as UICellAppButton);
+            //AccessTools.Field(typeof(UICellPhone), "_secondary").SetValue(GameManager.Stage.cellPhone, false);
 
             GM.System.Location.currentGirl = null;
             GM.System.Location.currentLocation = null;
@@ -178,7 +206,10 @@ namespace HunieMod
             if (destroy)
             {
                 GM.System.Puzzle.Game.Destroy();
+                GM.Stage.uiPuzzle.puzzleStatus.UpdatePuzzleEffects(null);
                 AccessTools.Field(typeof(PuzzleManager), "_activePuzzleGame").SetValue(GM.System.Puzzle, null);
+                AccessTools.Field(typeof(Girl), "DialogLineBeginEvent").SetValue(GM.Stage.girl, null, BindingFlags.Public, null, null);
+                AccessTools.Field(typeof(Girl), "DialogLineReadEvent").SetValue(GM.Stage.girl, null, BindingFlags.Public, null, null);
             }
             GM.Stage.uiPuzzle.puzzleGrid.SetLocalScale(0.9f, 0f);
             GM.Stage.uiPuzzle.puzzleGrid.gridBackground.SetAlpha(0f, 0f);
@@ -221,7 +252,10 @@ namespace HunieMod
                     }
 
                     if (!saveFile.started)
+                    {
+                        BaseHunieModPlugin.hasReturned = false;
                         saveFile.settingsGender = (int)gender;
+                    }
 
                     // Set the active save file
                     AccessTools.Field(typeof(GM), "_saveFile").SetValue(GM.System, saveFile);
@@ -309,6 +343,70 @@ namespace HunieMod
                     false,
                     1.4f);
             }
+        }
+
+        public static Texture2D ImageFileToTexture(string filename, bool isEmbeddedResource = false)
+        {
+            byte[] imageData;
+
+            if (isEmbeddedResource)
+            {
+                Assembly assembly = Assembly.GetExecutingAssembly();
+                //Assembly assembly = typeof(SpriteUtil).Assembly; // Replace with the assembly that contains your images, if you want to use embedded ones...
+
+                using (Stream stream = assembly.GetManifestResourceStream(filename))
+                {
+                    if (stream == null)
+                    {
+                        //Logger.LogInfo($"{nameof(SpriteUtil)}.{nameof(ImageFileToTexture)}: Resource does not exist: {filename}");
+                        return null;
+                    }
+                    imageData = new byte[stream.Length];
+                    stream.Read(imageData, 0, (int)stream.Length);
+                }
+            }
+            else
+            {
+                if (!File.Exists(filename))
+                {
+                    //Logger.LogInfo($"{nameof(SpriteUtil)}.{nameof(ImageFileToTexture)}: File does not exist: {filename}");
+                    return null;
+                }
+                using (FileStream stream = File.Open(filename, FileMode.Open, FileAccess.Read))
+                {
+                    imageData = new byte[stream.Length];
+                    stream.Read(imageData, 0, (int)stream.Length);
+                }
+            }
+
+            Texture2D texture = new Texture2D(2, 2, TextureFormat.ARGB32, false);
+
+            if (imageData?.Length > 0)
+            {
+                texture.LoadImage(imageData);
+            }
+
+            return texture;
+        }
+
+        public static SpriteObject ImageFileToSprite(string filename, string spriteName, bool isEmbeddedResource = false)
+        {
+            Texture2D texture = ImageFileToTexture(filename, isEmbeddedResource);
+            if (texture == null)
+            {
+                return null;
+            }
+
+            GameObject spriteGameObject = tk2dSprite.CreateFromTexture(
+                texture,
+                tk2dSpriteCollectionSize.ForResolution(GameCamera.SCREEN_DEFAULT_HEIGHT_HALF, GameCamera.SCREEN_DEFAULT_WIDTH, GameCamera.SCREEN_DEFAULT_HEIGHT),
+                new Rect(0f, 0f, texture.width, texture.height),
+                Vector2.zero);
+
+            tk2dSprite sprite = spriteGameObject.GetComponent<tk2dSprite>();
+            sprite.CurrentSprite.name = spriteName;
+
+            return DisplayUtils.CreateSpriteObject(sprite.Collection, spriteName);
         }
 
         /// <summary>
