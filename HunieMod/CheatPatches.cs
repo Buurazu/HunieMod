@@ -17,8 +17,8 @@ namespace HunieMod
         public static void AddItem(string theItem, InventoryItemPlayerData[] target = null)
         {
             if (target == null) target = GameManager.System.Player.inventory;
-            if (!GameManager.System.Player.HasItem(GameManager.Data.Items.Get(BaseHunieModPlugin.ItemList[theItem])))
-                GameManager.System.Player.AddItem(GameManager.Data.Items.Get(BaseHunieModPlugin.ItemList[theItem]), target, false, false);
+            if (!GameManager.System.Player.HasItem(GameManager.Data.Items.Get(BaseHunieModPlugin.ItemNameList[theItem])))
+                GameManager.System.Player.AddItem(GameManager.Data.Items.Get(BaseHunieModPlugin.ItemNameList[theItem]), target, false, false);
         }
         public static void AddItem(int theItem, InventoryItemPlayerData[] target = null)
         {
@@ -53,8 +53,6 @@ namespace HunieMod
             if (BaseHunieModPlugin.savingDisabled) return false;
             else return true;
         }
-        
-        
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LocationManager), "OnLocationSettled")]
@@ -69,8 +67,6 @@ namespace HunieMod
 
             }
         }
-
-
 
     }
 }

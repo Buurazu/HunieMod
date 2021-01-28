@@ -65,7 +65,6 @@ namespace HunieMod
                     if (returnTo != null)
                         GM.System.Player.currentLocation = returnTo;
                 }
-                //SpeedrunPatches.returningToMenuDuringPuzzle = true;
                 HidePuzzleGame(true);
             }
             else
@@ -98,8 +97,6 @@ namespace HunieMod
             //reset cell phone defaults
             GameManager.Stage.cellPhone.cellMemory = new Dictionary<string, int>();
             GameManager.Stage.cellPhone.SetCellApp(GameManager.Stage.cellPhone.defaultCellApp);
-            //AccessTools.Field(typeof(UICellPhone), "_activeCellAppButton").SetValue(GameManager.Stage.cellPhone, GameManager.Stage.cellPhone.cellAppButtonContainer.GetChildByName("CellAppButton0") as UICellAppButton);
-            //AccessTools.Field(typeof(UICellPhone), "_secondary").SetValue(GameManager.Stage.cellPhone, false);
 
             GM.System.Location.currentGirl = null;
             GM.System.Location.currentLocation = null;
