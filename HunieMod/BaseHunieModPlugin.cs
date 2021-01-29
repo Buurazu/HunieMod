@@ -23,6 +23,7 @@ namespace HunieMod
         public static ConfigEntry<Boolean> ReturnToMenuEnabled { get; private set; }
         public static ConfigEntry<Boolean> CheatHotkeyEnabled { get; private set; }
         public static ConfigEntry<Boolean> MouseWheelEnabled { get; private set; }
+        public static ConfigEntry<Boolean> InputModsEnabled { get; private set; }
 
         //hasReturned is used to display "This is for practice purposes" after a return to main menu, until you start a new file
         public static bool hasReturned = false;
@@ -54,6 +55,10 @@ namespace HunieMod
                 "Settings", nameof(MouseWheelEnabled),
                 true,
                 "Enable or disable the mouse wheel being treated as a click");
+            InputModsEnabled = Config.Bind(
+                "Settings", nameof(InputModsEnabled),
+                true,
+                "Enable or disable all fake clicks");
 
             ResetKey = Config.Bind(
                 "Settings", nameof(ResetKey),
@@ -78,7 +83,11 @@ namespace HunieMod
             {
                 Harmony.CreateAndPatchAll(typeof(CensorshipPatches), null);
             }
-            Harmony.CreateAndPatchAll(typeof(SpeedrunPatches), null);
+            if (InputModsEnabled.Value)
+            {
+                Harmony.CreateAndPatchAll(typeof(InputPatches), null);
+            }
+            Harmony.CreateAndPatchAll(typeof(BasePatches), null);
         }
 
         int Version()
@@ -158,6 +167,8 @@ namespace HunieMod
             axises += Input.GetAxis("Mouse ScrollWheel");
             Logger.LogDebug(axises);*/
 
+            //Logger.LogDebug(Input.GetMouseButtonDown(0) + "," + Input.GetMouseButtonUp(0));
+
             if (GameManager.System.GameState == GameState.TITLE)
             {
 
@@ -204,10 +215,21 @@ namespace HunieMod
                     }
                 }
 
-                //i've made this the "output things of my choosing" function
-                if (Input.GetKeyDown(KeyCode.N))
+                if (Input.GetKeyDown(KeyCode.M))
                 {
-                    /*string bigTable = "";
+                    InputPatches.mashCheat = !InputPatches.mashCheat;
+                    if (InputPatches.mashCheat)
+                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "MASH POWER ACTIVATED!!!!!");
+                    else
+                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Mash power disabled");
+
+                }
+
+                    //i've made this the "output things of my choosing" function
+                    /*
+                    if (Input.GetKeyDown(KeyCode.N))
+                {
+                    string bigTable = "";
                     foreach (GirlDefinition g in HunieMod.Definitions.Girls)
                     {
                         bigTable += g.firstName;
@@ -239,10 +261,10 @@ namespace HunieMod
                         }
                         bigTable += "\n";
                     }
-                    Logger.LogDebug(bigTable);*/
+                    Logger.LogDebug(bigTable);
                     //PlayCheatLine(testint);
                     //testint++;
-                    /*
+                    
                     string bigTable = "";
                     for (int i = 0; i < HunieMod.Definitions.DialogScenes.Count; i++)
                     {
@@ -268,9 +290,9 @@ namespace HunieMod
                             
                         }
                     }
-                    Logger.LogDebug(bigTable);*/
+                    Logger.LogDebug(bigTable);
 
-                    /*
+                    
                     Logger.LogDebug("test");
                     string bigTable = "";
                     for (int i = 0; i < 10000; i++)
@@ -278,8 +300,9 @@ namespace HunieMod
                         ItemDefinition test = GameManager.Data.Items.Get(i);
                         if (test != null) bigTable += "{\"" + GameManager.Data.Items.Get(i).name + "\", " + i + "},\n";
                     }
-                    Logger.LogDebug(bigTable);*/
+                    Logger.LogDebug(bigTable);
                 }
+                */
             }
             if (ReturnToMenuEnabled.Value)
             {
@@ -309,7 +332,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "1.2";
+        public const string PluginVersion = "1.2.1";
 
         /// <summary>
         /// The directory where this plugin resides.

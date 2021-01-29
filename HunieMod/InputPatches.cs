@@ -11,7 +11,7 @@ using UnityEngine;
 namespace HunieMod
 {
     // Token: 0x02000002 RID: 2
-    public class SpeedrunPatches
+    public class InputPatches
     {
         public static bool mouseDown = false;
 
@@ -20,12 +20,14 @@ namespace HunieMod
             KeyCode.JoystickButton0, KeyCode.JoystickButton1, KeyCode.JoystickButton2, KeyCode.JoystickButton3 };
 
         public static float[] prevAxises = new float[BaseHunieModPlugin.AXISES+1];
-        public static float prevMouseWheel = 0;
 
         public const float DEADZONE = 0.25f;
 
+        public static bool mashCheat = false;
+
         public static bool IsMouseKeyDown()
         {
+            if (mashCheat) return true;
             if (BaseHunieModPlugin.MouseWheelEnabled.Value && Input.GetAxis("Mouse ScrollWheel") != 0) return true;
             for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)
             {
@@ -40,7 +42,8 @@ namespace HunieMod
 
         public static bool IsMouseKeyUp()
         {
-            if (BaseHunieModPlugin.MouseWheelEnabled.Value && prevMouseWheel != 0) return true;
+            if (mashCheat) return true;
+            if (BaseHunieModPlugin.MouseWheelEnabled.Value && Input.GetAxis("Mouse ScrollWheel") != 0) return true;
             for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)
             {
                 if (Mathf.Abs(Input.GetAxis("Axis " + i)) <= DEADZONE && Mathf.Abs(prevAxises[i]) > DEADZONE) return true;
@@ -50,14 +53,6 @@ namespace HunieMod
                 if (Input.GetKeyUp(mouseKeys[i])) return true;
             }
             return false;
-        }
-
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(LocationManager), "OnLocationSettled")]
-        public static void PostReturnNotification()
-        {
-            if (BaseHunieModPlugin.cheatsEnabled) GameUtil.ShowNotification(CellNotificationType.MESSAGE, "CHEATS ARE ENABLED");
-            else if (BaseHunieModPlugin.hasReturned) GameUtil.ShowNotification(CellNotificationType.MESSAGE, "This is for practice purposes only");
         }
 
         [HarmonyPrefix]
@@ -122,7 +117,6 @@ namespace HunieMod
             {
                 prevAxises[i] = Input.GetAxis("Axis " + i);
             }
-            prevMouseWheel = Input.GetAxis("Mouse ScrollWheel");
 
             return false;
         }

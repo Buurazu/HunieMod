@@ -33,7 +33,7 @@ namespace HunieMod
             }
 
             //base HunieMod could just use Input.GetMouseButtonDown(0) I think
-            if (SpeedrunPatches.mouseDown)
+            if (Input.GetMouseButtonDown(0) || InputPatches.mouseDown)
             {
                 ShowNotification(CellNotificationType.MESSAGE, "Cannot leave with the mouse button clicked");
                 return false;
