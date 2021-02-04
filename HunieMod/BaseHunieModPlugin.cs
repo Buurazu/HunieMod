@@ -159,8 +159,19 @@ namespace HunieMod
 
         private void Update() // Another Unity method
         {
-
-            //Logger.LogDebug(GameManager.System.Puzzle.Game.currentDisplayAffection);
+            //Test if we should send the "Venus unlocked" signal
+            //All Panties routes would have met Momo or Celeste by now
+            if (GameManager.System.GameState == GameState.SIM
+                && GameManager.System.Player.GetGirlData(GameManager.Stage.uiGirl.alienGirlDef).metStatus != GirlMetStatus.MET
+                && GameManager.System.Player.GetGirlData(GameManager.Stage.uiGirl.catGirlDef).metStatus != GirlMetStatus.MET
+                && !BaseHunieModPlugin.cheatsEnabled && GameManager.Stage.girl.definition.firstName == "Venus"
+                && GameManager.System.Player.GetGirlData(GameManager.Stage.girl.definition).metStatus != GirlMetStatus.MET
+                && GameManager.Stage.girl.girlPieceContainers.localX < 520)
+            {
+                BasePatches.searchForMe = 500;
+            }
+            //Logger.LogDebug(GameManager.System.Location.currentGirl.id);
+            //Logger.LogDebug(GameManager.Stage.girl.definition.firstName);
             //Logger.LogDebug(BasePatches.searchForMe);
             //Logger.LogDebug(GameManager.System.SaveFile.settingsGender);
             //GameManager.Stage.
@@ -185,7 +196,6 @@ namespace HunieMod
                     PlayCheatLine();
                     Harmony.CreateAndPatchAll(typeof(CheatPatches), null);
                     cheatsEnabled = true;
-                    testint = 283566121;
                 }
             }
             if (cheatsEnabled)

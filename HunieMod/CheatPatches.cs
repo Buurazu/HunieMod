@@ -40,6 +40,17 @@ namespace HunieMod
             GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Fantastic date gifts added to inventory");
         }
 
+        //I use this function to test meeting Venus
+        /*
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(LocationManager), "CheckForSecretGirlUnlock")]
+        public static bool TestingVenus(ref GirlDefinition __result)
+        {
+            __result = GameManager.Stage.uiGirl.goddessGirlDef;
+            return false;
+        }
+        */
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(GirlPlayerData), "ReadGirlSaveData")]
         public static void MakeUsMet(GirlPlayerData __instance)
