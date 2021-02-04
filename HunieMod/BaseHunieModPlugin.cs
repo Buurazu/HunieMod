@@ -35,7 +35,7 @@ namespace HunieMod
         public const int JAN23 = 0;
         public const int VALENTINES = 1;
 
-        public static int testint = 0;
+        public static int testint = 284569123;
 
         private void Awake()
         {
@@ -88,6 +88,7 @@ namespace HunieMod
                 Harmony.CreateAndPatchAll(typeof(InputPatches), null);
             }
             Harmony.CreateAndPatchAll(typeof(BasePatches), null);
+            BasePatches.InitSearchForMe();
         }
 
         int Version()
@@ -158,6 +159,11 @@ namespace HunieMod
 
         private void Update() // Another Unity method
         {
+
+            //Logger.LogDebug(GameManager.System.Puzzle.Game.currentDisplayAffection);
+            //Logger.LogDebug(BasePatches.searchForMe);
+            //Logger.LogDebug(GameManager.System.SaveFile.settingsGender);
+            //GameManager.Stage.
             //Logger.LogDebug(Input.GetAxis("Mouse ScrollWheel"));
             /*string axises = "";
             for (int i = 0; i <= AXISES; i++)
@@ -179,6 +185,7 @@ namespace HunieMod
                     PlayCheatLine();
                     Harmony.CreateAndPatchAll(typeof(CheatPatches), null);
                     cheatsEnabled = true;
+                    testint = 283566121;
                 }
             }
             if (cheatsEnabled)
@@ -314,7 +321,11 @@ namespace HunieMod
                     }
                     else
                     {
-                        if (GameUtil.EndGameSession(false, false, false)) hasReturned = true; // Back to Titlescreen
+                        if (GameUtil.EndGameSession(false, false, false))
+                        {
+                            hasReturned = true;
+                            BasePatches.searchForMe = -111;
+                        }// Back to Titlescreen
                     }
                 }
             }
@@ -332,7 +343,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "1.2.1";
+        public const string PluginVersion = "1.2.2";
 
         /// <summary>
         /// The directory where this plugin resides.
