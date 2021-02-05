@@ -6,6 +6,7 @@ using UnityEngine;
 using HarmonyLib;
 using BepInEx.Configuration;
 using System.Collections.Generic;
+using System.Net;
 
 namespace HunieMod
 {
@@ -35,7 +36,7 @@ namespace HunieMod
         public const int JAN23 = 0;
         public const int VALENTINES = 1;
 
-        public static int testint = 284569123;
+        public static bool newVersionAvailable = false;
 
         private void Awake()
         {
@@ -68,17 +69,28 @@ namespace HunieMod
                 "Settings", nameof(ResetKey2),
                 new KeyboardShortcut(KeyCode.Escape),
                 "Alternate key to use");
-
         }
 
         void Start()
         {
+            //Check for a new update
+            WebClient client = new WebClient();
+            try
+            {
+                string reply = client.DownloadString("https://pastebin.com/raw/md3qeuCk");
+
+                if (reply != PluginVersion)
+                    newVersionAvailable = true;
+            }
+            catch (Exception e) { Logger.LogDebug("Couldn't read the pastebin!"); }
+
             //Create the item names dictionary for easier rewarding of specific items
             foreach (ItemDefinition item in HunieMod.Definitions.Items)
             {
                 ItemNameList.Add(item.name, item.id);
             }
 
+            //make the patches
             if (CensorshipEnabled.Value)
             {
                 Harmony.CreateAndPatchAll(typeof(CensorshipPatches), null);
@@ -88,10 +100,11 @@ namespace HunieMod
                 Harmony.CreateAndPatchAll(typeof(InputPatches), null);
             }
             Harmony.CreateAndPatchAll(typeof(BasePatches), null);
+            //initiate the variable used for autosplitting
             BasePatches.InitSearchForMe();
         }
 
-        int Version()
+        public static int GameVersion()
         {
             //Determine the version of the game running by checking if the Kyu Plushie exists
             if (ItemNameList.ContainsKey("Kyu Plushie") == false) return JAN23;
@@ -106,7 +119,7 @@ namespace HunieMod
 
         void PlayCheatLine(int line = -1)
         {
-            int version = Version(); //0 = jan23, 1 = valentines
+            int version = GameVersion(); //0 = jan23, 1 = valentines
             int r;
             if (line == -1)
             {
@@ -170,21 +183,6 @@ namespace HunieMod
             {
                 BasePatches.searchForMe = 500;
             }
-            //Logger.LogDebug(GameManager.System.Location.currentGirl.id);
-            //Logger.LogDebug(GameManager.Stage.girl.definition.firstName);
-            //Logger.LogDebug(BasePatches.searchForMe);
-            //Logger.LogDebug(GameManager.System.SaveFile.settingsGender);
-            //GameManager.Stage.
-            //Logger.LogDebug(Input.GetAxis("Mouse ScrollWheel"));
-            /*string axises = "";
-            for (int i = 0; i <= AXISES; i++)
-            {
-                axises += Input.GetAxis("Axis " + i) + ",";
-            }
-            axises += Input.GetAxis("Mouse ScrollWheel");
-            Logger.LogDebug(axises);*/
-
-            //Logger.LogDebug(Input.GetMouseButtonDown(0) + "," + Input.GetMouseButtonUp(0));
 
             if (GameManager.System.GameState == GameState.TITLE)
             {
@@ -241,85 +239,6 @@ namespace HunieMod
                         GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Mash power disabled");
 
                 }
-
-                    //i've made this the "output things of my choosing" function
-                    /*
-                    if (Input.GetKeyDown(KeyCode.N))
-                {
-                    string bigTable = "";
-                    foreach (GirlDefinition g in HunieMod.Definitions.Girls)
-                    {
-                        bigTable += g.firstName;
-                        if (g.drinksAnytime) bigTable += " (D)";
-                        bigTable += ":\n";
-                        for (int i = 0; i < g.schedule.Length; i++)
-                        {
-                            for (int j = 0; j < g.schedule[i].daytimes.Length; j++)
-                            {
-                                LocationDefinition loc = g.schedule[i].daytimes[j].location;
-                                string locname = "";
-                                if (loc == null)
-                                {
-                                    if (g.leavesTown) locname = "OUT OF TOWN";
-                                    else locname = "ASLEEP";
-                                }
-                                else locname = loc.fullName;
-                                if (!g.drinksAnytime && (locname == "Lusties Nightclub" || locname == "Bar & Lounge")) locname += " (D)";
-                                string formattedPhase = "";
-                                switch(j)
-                                {
-                                    case 0: formattedPhase = "MORNING:   "; break;
-                                    case 1: formattedPhase = "AFTERNOON: "; break;
-                                    case 2: formattedPhase = "EVENING:   "; break;
-                                    case 3: formattedPhase = "NIGHT:     "; break;
-                                }
-                                bigTable += (GameClockWeekday)i + " " + formattedPhase + locname + "\n";
-                            }
-                        }
-                        bigTable += "\n";
-                    }
-                    Logger.LogDebug(bigTable);
-                    //PlayCheatLine(testint);
-                    //testint++;
-                    
-                    string bigTable = "";
-                    for (int i = 0; i < HunieMod.Definitions.DialogScenes.Count; i++)
-                    {
-                        for (int j = 0; j < HunieMod.Definitions.DialogScenes[i].steps.Count; j++)
-                        {
-                            bigTable += i + "," + j + ": " + HunieMod.Definitions.DialogScenes[i].steps[j].sceneLine.dialogLine.text + "\n";
-                        }
-                    }
-                    Logger.LogDebug(bigTable);
-
-                    bigTable = "";
-                    for (int i = 0; i < HunieMod.Definitions.DialogTriggers.Count; i++)
-                    {
-                        for (int j = 0; j < HunieMod.Definitions.DialogTriggers[i].lineSets.Count; j++)
-                        {
-                            for (int k = 0; k < HunieMod.Definitions.DialogTriggers[i].lineSets[j].lines.Count; k++)
-                            {
-                                for (int l = 0; l < HunieMod.Definitions.DialogTriggers[i].lineSets[j].lines[k].dialogLine.Length; l++)
-                                {
-                                    bigTable += i + "," + j + "," + k + "," + l + ": " + HunieMod.Definitions.DialogTriggers[i].lineSets[j].lines[k].dialogLine[l].text + "\n";
-                                }
-                            }
-                            
-                        }
-                    }
-                    Logger.LogDebug(bigTable);
-
-                    
-                    Logger.LogDebug("test");
-                    string bigTable = "";
-                    for (int i = 0; i < 10000; i++)
-                    {
-                        ItemDefinition test = GameManager.Data.Items.Get(i);
-                        if (test != null) bigTable += "{\"" + GameManager.Data.Items.Get(i).name + "\", " + i + "},\n";
-                    }
-                    Logger.LogDebug(bigTable);
-                }
-                */
             }
             if (ReturnToMenuEnabled.Value)
             {
@@ -335,7 +254,7 @@ namespace HunieMod
                         {
                             hasReturned = true;
                             BasePatches.searchForMe = -111;
-                        }// Back to Titlescreen
+                        }
                     }
                 }
             }
@@ -353,7 +272,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "1.2.2";
+        public const string PluginVersion = "1.3";
 
         /// <summary>
         /// The directory where this plugin resides.
