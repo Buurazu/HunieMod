@@ -239,6 +239,43 @@ namespace HunieMod
                         GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Mash power disabled");
 
                 }
+
+                if (Input.GetKeyDown(KeyCode.T))
+                {
+                    //PUZZLE TEST
+                    /*The pieces in tokens are ordered alphabetically
+                    Broken Heart, Flirtation, Joy, Passion, Romance, Sentiment, Sexuality, Talent */
+                    GameUtil.ShowNotification(CellNotificationType.MESSAGE, "PUZZLE TEST");
+                    PuzzleTokenDefinition[] tokens = GameManager.Data.PuzzleTokens.GetAll();
+
+                    Dictionary<string,PuzzleGridPosition> theBoard = (Dictionary<string, PuzzleGridPosition>)AccessTools.Field(typeof(PuzzleGame), "_gridPositions").GetValue(Game.Puzzle.Game);
+                    UIPuzzleGrid ui = (UIPuzzleGrid)AccessTools.Field(typeof(PuzzleGame), "_puzzleGrid").GetValue(Game.Puzzle.Game);
+
+                        int[] badboard = {
+                        1, 4, 6, 7, 1, 4, 6, 7,
+                        4, 6, 7, 1, 4, 6, 7, 1,
+                        6, 7, 1, 4, 6, 7, 1, 4,
+                        1, 4, 6, 7, 1, 4, 6, 7,
+                        4, 6, 7, 1, 4, 6, 7, 1,
+                        6, 7, 1, 4, 6, 7, 1, 4,
+                        1, 4, 6, 7, 1, 4, 6, 7
+                    };
+
+                    for (int m = 6; m >= 0; m--)
+                    {
+                        for (int n = 7; n >= 0; n--)
+                        {
+                            PuzzleGridPosition blank = new PuzzleGridPosition(m, n, ui);
+                            PuzzleGridPosition pgp = theBoard[blank.GetKey(0,0)];
+                            PuzzleToken pt = (PuzzleToken)AccessTools.Field(typeof(PuzzleGridPosition), "_token").GetValue(pgp);
+                            pt.definition = tokens[badboard[(m * 8) + n]];
+                            pt.level = ((m * 8) + n) % 2 + 1;
+                            pt.sprite.SetSprite(GameManager.Stage.uiPuzzle.puzzleGrid.puzzleTokenSpriteCollection, pt.definition.levels[pt.level - 1].GetSpriteName(false, false));
+                            pgp.SetToken(pt);
+                        }
+                    }
+
+                }
             }
             if (ReturnToMenuEnabled.Value)
             {
