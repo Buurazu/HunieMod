@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -24,6 +25,14 @@ namespace HunieMod
         public const float DEADZONE = 0.25f;
 
         public static bool mashCheat = false;
+
+        //public static bool mouseWasDown = false;
+        //public static bool mouseWasClicked = false;
+        //public static Stopwatch stopwatch = new Stopwatch();
+        //public static int updatemillis = 0;
+
+        public static BepInEx.Logging.ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("InputPatches");
+
 
         public static bool IsMouseKeyDown()
         {
@@ -60,7 +69,8 @@ namespace HunieMod
         public static bool FakeMouseClicks(CursorManager __instance, ref List<CursorAttachedObject> ____attachedObjects,
             ref DisplayObject ____mouseTarget, ref DisplayObject ____mouseDownTarget, ref Vector3 ____mouseDelta, ref Vector3 ____previousMousePosition)
         {
-
+            //if (!stopwatch.IsRunning) stopwatch.Start();
+            //Logger.LogMessage(stopwatch.ElapsedMilliseconds);
             Vector3 mousePosition = __instance.GetMousePosition();
             for (int i = 0; i < ____attachedObjects.Count; i++)
             {
@@ -89,6 +99,7 @@ namespace HunieMod
             if (Input.GetMouseButtonDown(0) || IsMouseKeyDown())
             {
                 mouseDown = true;
+                //mouseWasDown = true;
                 if (____mouseTarget != null)
                 {
                     ____mouseTarget.MouseDown();
@@ -99,6 +110,7 @@ namespace HunieMod
             if (mouseDown && (Input.GetMouseButtonUp(0) || IsMouseKeyUp()))
             {
                 mouseDown = false;
+                //mouseWasClicked = true;
                 if (____mouseTarget != null)
                 {
                     ____mouseTarget.MouseUp();
