@@ -17,8 +17,7 @@ namespace HunieMod
         public static bool mouseDown = false;
 
         public static KeyCode[] mouseKeys = new KeyCode[] {KeyCode.W, KeyCode.A, KeyCode.S, KeyCode.D, KeyCode.Q, KeyCode.E,
-            KeyCode.Space, KeyCode.UpArrow, KeyCode.DownArrow, KeyCode.LeftArrow, KeyCode.RightArrow,
-            KeyCode.JoystickButton0, KeyCode.JoystickButton1, KeyCode.JoystickButton2, KeyCode.JoystickButton3 };
+            KeyCode.Space, KeyCode.JoystickButton0, KeyCode.JoystickButton1, KeyCode.JoystickButton2, KeyCode.JoystickButton3 };
 
         public static float[] prevAxises = new float[BaseHunieModPlugin.AXISES+1];
 

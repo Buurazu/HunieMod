@@ -71,6 +71,8 @@
     <Compile Include="Extensions\GirlExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="InputPatches.cs" />
+    <Compile Include="RunTimer.cs" />
+    <Compile Include="RunTimerPatches.cs" />
     <Compile Include="StaticCoroutine.cs" />
     <Compile Include="Utility\GameUtil.cs" />
   </ItemGroup>

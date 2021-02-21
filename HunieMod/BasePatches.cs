@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -19,6 +20,13 @@ namespace HunieMod
 
         public static SpriteObject updateSprite;
 
+        public static BepInEx.Logging.ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("BasePatches");
+
+        public static bool splitThisDate = false;
+        public static bool replacingText = false;
+        public static int startingCompletedGirls = 0;
+        public static int startingRelationship = 0;
+
         public static void InitSearchForMe()
         {
             searchForMe = 123456789;
@@ -33,13 +41,68 @@ namespace HunieMod
         }
 
         [HarmonyPostfix]
-        [HarmonyPatch(typeof(PuzzleGame), "UpdateAffectionMeterDisplay")]
-        public static void AutosplitHelp(PuzzleGame __instance, ref int ____goalAffection)
+        [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
+        public static void AutosplitHelp(PuzzleGame __instance, ref int ____goalAffection, ref bool ____victory, ref bool ____isBonusRound)
         {
-            if (BaseHunieModPlugin.cheatsEnabled || BaseHunieModPlugin.hasReturned) return;
-            if (__instance.currentDisplayAffection == ____goalAffection)
-                searchForMe = 100;
-            else searchForMe = 0;
+            //allow splits to happen with cheats/has returned, as long as we don't auto-start with those on it's fine
+            //if (BaseHunieModPlugin.cheatsEnabled || BaseHunieModPlugin.hasReturned) return;
+            if (__instance.currentDisplayAffection == 0)
+            {
+                startingCompletedGirls = GameManager.System.Player.GetTotalMaxRelationships();
+                startingRelationship = GameManager.System.Player.GetGirlData(GameManager.Stage.girl.definition).relationshipLevel;
+            }
+            if (__instance.currentDisplayAffection == ____goalAffection && (____victory || ____isBonusRound))
+            {
+                //make the autosplitter more viable for 100%?
+                if (startingCompletedGirls < 12)
+                    searchForMe = 100;
+                //if a timer is running, split
+                if (!splitThisDate && BaseHunieModPlugin.run != null)
+                {
+                    bool didSplit = false;
+                    RunTimer run = BaseHunieModPlugin.run;
+                    //don't split for dates in postgame
+                    if (startingCompletedGirls < 12)
+                    {
+                        //check our rules
+                        if (run.goal <= 2 || BaseHunieModPlugin.SplitRules.Value <= 0) didSplit = run.split();
+                        else if (BaseHunieModPlugin.SplitRules.Value == 1 && !____isBonusRound) didSplit = run.split();
+                        else if (BaseHunieModPlugin.SplitRules.Value == 2 && ____isBonusRound) didSplit = run.split();
+                        //check for final split regardless of option
+                        //technically someone could just repeat sex with a girl to trigger this split. if they do that, too bad
+                        else if (____isBonusRound && (run.goal == startingCompletedGirls + 1))
+                            didSplit = run.split();
+                    }
+                    if (didSplit)
+                    {
+                        RunTimerPatches.initialTimerDelay.Start();
+                        if (!____isBonusRound) RunTimerPatches.revertDiffDelay.Start();
+                        RunTimerPatches.isBonusRound = ____isBonusRound;
+                        int dateNum = startingRelationship;
+                        if (____isBonusRound) dateNum++;
+
+                        string newSplit = GameManager.Stage.girl.definition.firstName + " #" + dateNum;
+                        if (GameManager.Stage.girl.definition.firstName == "Kyu" && startingCompletedGirls == 0) newSplit = "Tutorial";
+                        newSplit += "\n      " + run.splitText + "\n";
+                        run.push(newSplit);
+
+                        if (____isBonusRound && (run.goal == startingCompletedGirls + 1))
+                        {
+                            run.save();
+                        }
+
+                    }
+                }
+
+
+                splitThisDate = true;
+            }
+            else
+            {
+                searchForMe = 0;
+                replacingText = false;
+                splitThisDate = false;
+            }
         }
 
         [HarmonyPostfix]

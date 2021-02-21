@@ -7,6 +7,7 @@ using HarmonyLib;
 using BepInEx.Configuration;
 using System.Collections.Generic;
 using System.Net;
+using System.Diagnostics;
 
 namespace HunieMod
 {
@@ -25,6 +26,9 @@ namespace HunieMod
         public static ConfigEntry<Boolean> CheatHotkeyEnabled { get; private set; }
         public static ConfigEntry<Boolean> MouseWheelEnabled { get; private set; }
         public static ConfigEntry<Boolean> InputModsEnabled { get; private set; }
+        public static ConfigEntry<Boolean> InGameTimer { get; private set; }
+        public static ConfigEntry<int> SplitRules { get; private set; }
+        public static ConfigEntry<bool> CapAt144 { get; private set; }
 
         //hasReturned is used to display "This is for practice purposes" after a return to main menu, until you start a new file
         public static bool hasReturned = false;
@@ -38,8 +42,25 @@ namespace HunieMod
 
         public static bool newVersionAvailable = false;
 
+        public static RunTimer run;
+
+        public static int lastChosenCategory = 0;
+        public static int lastChosenDifficulty = 0;
+
         private void Awake()
         {
+            CapAt144 = Config.Bind(
+                "Settings", nameof(CapAt144),
+                true,
+                "Cap the game at 144 FPS. If false, it will cap at 60 FPS instead. 144 FPS could help mash speed, but the higher framerate could mean bonus round affection drains faster (especially on Hard)");
+            InGameTimer = Config.Bind(
+                "Settings", nameof(InGameTimer),
+                true,
+                "Enable or disable the built-in timer (shows your time on the affection meter after each date, read the readme for more info)");
+            SplitRules = Config.Bind(
+                "Settings", nameof(SplitRules),
+                0,
+                "0 = Split on every date/bonus, 1 = Split only after dates, 2 = Split only after bonus rounds\n(You may want to delete your run comparison/golds after changing this. Get Laids are excluded from this option)");
             CensorshipEnabled = Config.Bind(
                 "Settings", nameof(CensorshipEnabled),
                 true,
@@ -73,6 +94,23 @@ namespace HunieMod
 
         void Start()
         {
+            QualitySettings.vSyncCount = 0;
+            if (CapAt144.Value)
+                Application.targetFrameRate = 144;
+            else
+                Application.targetFrameRate = 60;
+
+            Harmony.CreateAndPatchAll(typeof(BasePatches), null);
+            //initiate the variable used for autosplitting
+            BasePatches.InitSearchForMe();
+
+            //Create the splits files for the first time if they don't exist
+            if (!System.IO.Directory.Exists("splits"))
+            {
+                System.IO.Directory.CreateDirectory("splits");
+                System.IO.Directory.CreateDirectory("splits/data");
+            }
+
             //Check for a new update
             WebClient client = new WebClient();
             try
@@ -90,7 +128,6 @@ namespace HunieMod
                 ItemNameList.Add(item.name, item.id);
             }
 
-            //make the patches
             if (CensorshipEnabled.Value)
             {
                 Harmony.CreateAndPatchAll(typeof(CensorshipPatches), null);
@@ -99,9 +136,10 @@ namespace HunieMod
             {
                 Harmony.CreateAndPatchAll(typeof(InputPatches), null);
             }
-            Harmony.CreateAndPatchAll(typeof(BasePatches), null);
-            //initiate the variable used for autosplitting
-            BasePatches.InitSearchForMe();
+            if (InGameTimer.Value)
+            {
+                Harmony.CreateAndPatchAll(typeof(RunTimerPatches), null);
+            }
         }
 
         public static int GameVersion()
@@ -170,10 +208,18 @@ namespace HunieMod
             }
         }
 
+        private void OnApplicationQuit()
+        {
+            //save golds on the way out
+            if (run != null)
+                run.reset();
+        }
+
         private void Update() // Another Unity method
         {
-            //Logger.LogMessage("mouse down: " + InputPatches.mouseWasDown + ", mouse clicked: " + InputPatches.mouseWasClicked + ", scroll wheel: " + Input.GetAxis("Mouse ScrollWheel"));
+            //Logger.LogMessage("scroll wheel: " + Input.GetAxis("Mouse ScrollWheel"));
             //InputPatches.mouseWasDown = false; InputPatches.mouseWasClicked = false;
+            RunTimerPatches.Update();
 
             //Test if we should send the "Venus unlocked" signal
             //All Panties routes would have met Momo or Celeste by now
@@ -185,10 +231,43 @@ namespace HunieMod
                 && GameManager.Stage.girl.girlPieceContainers.localX < 520)
             {
                 BasePatches.searchForMe = 500;
+                if (run != null && run.goal == 69)
+                {
+                    run.split();
+                    string newSplit = "Venus Unlocked\n      " + run.splitText + "\n";
+                    run.push(newSplit);
+                    run.save();
+                }
             }
 
             if (GameManager.System.GameState == GameState.TITLE)
             {
+                bool updateText = false;
+                if (Input.GetKeyDown(KeyCode.DownArrow))
+                {
+                    lastChosenDifficulty++; if (lastChosenDifficulty >= RunTimer.difficulties.Length) lastChosenDifficulty = 0;
+                    updateText = true;
+                }
+                if (Input.GetKeyDown(KeyCode.UpArrow))
+                {
+                    lastChosenDifficulty--; if (lastChosenDifficulty < 0) lastChosenDifficulty = RunTimer.difficulties.Length-1;
+                    updateText = true;
+                }
+                if (Input.GetKeyDown(KeyCode.RightArrow))
+                {
+                    lastChosenCategory++; if (lastChosenCategory >= RunTimer.categories.Length) lastChosenCategory = 0;
+                    updateText = true;
+                }
+                if (Input.GetKeyDown(KeyCode.LeftArrow))
+                {
+                    lastChosenCategory--; if (lastChosenCategory < 0) lastChosenCategory = RunTimer.categories.Length - 1;
+                    updateText = true;
+                }
+
+                if (updateText)
+                {
+                    RunTimerPatches.UpdateFiles();
+                }
 
                 if (CheatHotkeyEnabled.Value && cheatsEnabled == false && Input.GetKeyDown(KeyCode.C))
                 {
@@ -199,6 +278,31 @@ namespace HunieMod
                     cheatsEnabled = true;
                 }
             }
+
+            if (ReturnToMenuEnabled.Value)
+            {
+                if (ResetKey.Value.IsDown() || ResetKey2.Value.IsDown())
+                {
+                    if (GameManager.System.GameState == GameState.TITLE)
+                    {
+                        //GameUtil.QuitGame();
+                    }
+                    else
+                    {
+                        if (GameUtil.EndGameSession(false, false, false))
+                        {
+                            hasReturned = true;
+                            BasePatches.searchForMe = -111;
+                            if (run != null)
+                            {
+                                run.reset();
+                                run = null;
+                            }
+                        }
+                    }
+                }
+            }
+
             if (cheatsEnabled)
             {
                 if (Input.GetKeyDown(KeyCode.F1))
@@ -256,6 +360,7 @@ namespace HunieMod
                         Dictionary<string, PuzzleGridPosition> theBoard = (Dictionary<string, PuzzleGridPosition>)AccessTools.Field(typeof(PuzzleGame), "_gridPositions").GetValue(Game.Puzzle.Game);
                         UIPuzzleGrid ui = (UIPuzzleGrid)AccessTools.Field(typeof(PuzzleGame), "_puzzleGrid").GetValue(Game.Puzzle.Game);
 
+                        /*
                         int[] badboard = {
                         1, 4, 6, 7, 1, 4, 6, 7,
                         4, 6, 7, 1, 4, 6, 7, 1,
@@ -264,6 +369,17 @@ namespace HunieMod
                         4, 6, 7, 1, 4, 6, 7, 1,
                         6, 7, 1, 4, 6, 7, 1, 4,
                         1, 4, 6, 7, 1, 4, 6, 7
+                    };
+                        */
+
+                        int[] badboard = {
+                        1, 4, 6, 7, 1, 4, 6, 7,
+                        4, 6, 7, 1, 4, 0, 7, 1,
+                        6, 7, 1, 4, 6, 6, 1, 4,
+                        1, 4, 6, 7, 1, 6, 6, 7,
+                        4, 6, 7, 6, 6, 7, 6, 1,
+                        6, 7, 1, 0, 0, 6, 0, 0,
+                        1, 4, 6, 0, 0, 6, 0, 0
                     };
 
                         for (int m = 6; m >= 0; m--)
@@ -274,7 +390,7 @@ namespace HunieMod
                                 PuzzleGridPosition pgp = theBoard[blank.GetKey(0, 0)];
                                 PuzzleToken pt = (PuzzleToken)AccessTools.Field(typeof(PuzzleGridPosition), "_token").GetValue(pgp);
                                 pt.definition = tokens[badboard[(m * 8) + n]];
-                                pt.level = ((m * 8) + n) % 2 + 1;
+                                pt.level = 1;
                                 pt.sprite.SetSprite(GameManager.Stage.uiPuzzle.puzzleGrid.puzzleTokenSpriteCollection, pt.definition.levels[pt.level - 1].GetSpriteName(false, false));
                                 pgp.SetToken(pt);
                             }
@@ -283,24 +399,6 @@ namespace HunieMod
                     }
                 }
 
-            }
-            if (ReturnToMenuEnabled.Value)
-            {
-                if (ResetKey.Value.IsDown() || ResetKey2.Value.IsDown())
-                {
-                    if (GameManager.System.GameState == GameState.TITLE)
-                    {
-                        //GameUtil.QuitGame();
-                    }
-                    else
-                    {
-                        if (GameUtil.EndGameSession(false, false, false))
-                        {
-                            hasReturned = true;
-                            BasePatches.searchForMe = -111;
-                        }
-                    }
-                }
             }
         }
         /// <summary>
