@@ -17,6 +17,11 @@ namespace HunieMod
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
     public class BaseHunieModPlugin : BaseUnityPlugin
     {
+        /// <summary>
+        /// The version of this plugin.
+        /// </summary>
+        public const string PluginVersion = "1.4";
+
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
         public static ConfigEntry<KeyboardShortcut> ResetKey { get; private set; }
@@ -25,10 +30,11 @@ namespace HunieMod
         public static ConfigEntry<Boolean> ReturnToMenuEnabled { get; private set; }
         public static ConfigEntry<Boolean> CheatHotkeyEnabled { get; private set; }
         public static ConfigEntry<Boolean> MouseWheelEnabled { get; private set; }
+        public static ConfigEntry<Boolean> KeyboardEnabled { get; private set; }
         public static ConfigEntry<Boolean> InputModsEnabled { get; private set; }
         public static ConfigEntry<Boolean> InGameTimer { get; private set; }
         public static ConfigEntry<int> SplitRules { get; private set; }
-        public static ConfigEntry<bool> CapAt144 { get; private set; }
+        public static ConfigEntry<Boolean> CapAt144 { get; private set; }
 
         //hasReturned is used to display "This is for practice purposes" after a return to main menu, until you start a new file
         public static bool hasReturned = false;
@@ -69,19 +75,6 @@ namespace HunieMod
                 "Settings", nameof(ReturnToMenuEnabled),
                 true,
                 "Enable or disable the return to main menu feature");
-            CheatHotkeyEnabled = Config.Bind(
-                "Settings", nameof(CheatHotkeyEnabled),
-                true,
-                "Enable or disable the cheat hotkey (C on main menu)");
-            MouseWheelEnabled = Config.Bind(
-                "Settings", nameof(MouseWheelEnabled),
-                true,
-                "Enable or disable the mouse wheel being treated as a click");
-            InputModsEnabled = Config.Bind(
-                "Settings", nameof(InputModsEnabled),
-                true,
-                "Enable or disable all fake clicks");
-
             ResetKey = Config.Bind(
                 "Settings", nameof(ResetKey),
                 new KeyboardShortcut(KeyCode.F4),
@@ -90,6 +83,23 @@ namespace HunieMod
                 "Settings", nameof(ResetKey2),
                 new KeyboardShortcut(KeyCode.Escape),
                 "Alternate key to use");
+            MouseWheelEnabled = Config.Bind(
+                "Settings", nameof(MouseWheelEnabled),
+                true,
+                "Enable or disable the mouse wheel being treated as a click");
+            KeyboardEnabled = Config.Bind(
+                "Settings", nameof(KeyboardEnabled),
+                true,
+                "Enable or disable keyboard keys being treated as a click");
+            InputModsEnabled = Config.Bind(
+                "Settings", nameof(InputModsEnabled),
+                true,
+                "Enable or disable all fake clicks");
+            CheatHotkeyEnabled = Config.Bind(
+                "Settings", nameof(CheatHotkeyEnabled),
+                true,
+                "Enable or disable the cheat hotkey (C on main menu)");
+
         }
 
         void Start()
@@ -120,7 +130,7 @@ namespace HunieMod
                 if (reply != PluginVersion)
                     newVersionAvailable = true;
             }
-            catch (Exception e) { Logger.LogDebug("Couldn't read the pastebin!"); }
+            catch (Exception e) { Logger.LogDebug("Couldn't read the update pastebin! " + e.ToString()); }
 
             //Create the item names dictionary for easier rewarding of specific items
             foreach (ItemDefinition item in HunieMod.Definitions.Items)
@@ -416,11 +426,6 @@ namespace HunieMod
         /// The name of this plugin.
         /// </summary>
         public const string PluginName = "HunieMod (Speedrun Version)";
-
-        /// <summary>
-        /// The version of this plugin.
-        /// </summary>
-        public const string PluginVersion = "1.3";
 
         /// <summary>
         /// The directory where this plugin resides.
