@@ -240,7 +240,7 @@ namespace HunieMod
                 }
             }
 
-            if (GameManager.System.GameState == GameState.TITLE)
+            if (GameManager.System.GameState == GameState.TITLE && BasePatches.titleScreenInteractive)
             {
                 bool updateText = false;
                 if (Input.GetKeyDown(KeyCode.DownArrow))
@@ -301,6 +301,12 @@ namespace HunieMod
                         }
                     }
                 }
+            }
+
+            //display the splits folder on Ctrl+S
+            if (Input.GetKeyDown(KeyCode.S) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            {
+                System.Diagnostics.Process.Start(Directory.GetCurrentDirectory() + "/splits");
             }
 
             if (cheatsEnabled)

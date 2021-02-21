@@ -15,7 +15,7 @@ namespace HunieMod
         }
         public static string[] categories = new string[] { "Get Laid", "Get Laid + Kyu", "Unlock Venus", "All Panties", "100%" };
         public static int[] goals = new int[] { 1, 2, 69, 12, 100 };
-        public static string[] difficulties = new string[] { "Easy", "Normal", "Hard" };
+        public static string[] difficulties = new string[] { "Any Difficulty", "Easy", "Normal", "Hard" };
 
         //white, blue, red, gold
         public static Color32[] outlineColors = new Color32[] { new Color32(98, 149, 252, 255), new Color(229, 36, 36, 255), new Color(240, 176, 18, 255) };
@@ -49,11 +49,11 @@ namespace HunieMod
             //the older .net version doesn't have timespan.tostring options but this works maybe?
             //datetime likes to start at 12 hours but is fine for quick minutes/seconds displaying
             if (time.Hours != 0)
-                val += Mathf.Abs(time.Hours) + new DateTime(time.Ticks).ToString(@"mm\:ss\.f");
+                val += Mathf.Abs(time.Hours) + new DateTime(time.Duration().Ticks).ToString(@"mm\:ss\.f");
             else if (time.Minutes != 0)
-                val += new DateTime(time.Ticks).ToString(@"m\:ss\.f");
+                val += new DateTime(time.Duration().Ticks).ToString(@"m\:ss\.f");
             else
-                val += new DateTime(time.Ticks).ToString(@"s\.f");
+                val += new DateTime(time.Duration().Ticks).ToString(@"s\.f");
             return val;
         }
         public static string GetAll(int cat, int difficulty)
@@ -101,7 +101,6 @@ namespace HunieMod
             goal = -1;
             runTimer = new Stopwatch();
             runTimer.Start();
-            Logger.LogMessage("blank timer constructor");
         }
         public RunTimer(int newFile, int cat, int difficulty) : this()
         {
@@ -109,34 +108,42 @@ namespace HunieMod
             runFile = newFile;
             if (cat < categories.Length)
             {
+                //default to Normal
+                if (difficulty == 0) difficulty = 2;
                 category = categories[cat] + " " + difficulties[difficulty];
                 goal = goals[cat];
 
-                Logger.LogMessage("new run: save file #" + runFile + " ," + category + " ," + goal);
-                //search for comparison splits
-                string target = "splits/data/" + category + ".txt";
-                if (File.Exists(target))
-                {
-                    string[] textFile = File.ReadAllLines(target);
-                    for (int j = 0; j < textFile.Length; j++)
-                    {
-                        comparison.Add(TimeSpan.Parse(textFile[j]));
-                    }
-                }
-                //search for gold splits
-                target = "splits/data/" + category + " Golds.txt";
-                if (File.Exists(target))
-                {
-                    string[] textFile = File.ReadAllLines(target);
-                    for (int j = 0; j < textFile.Length; j++)
-                    {
-                        golds.Add(TimeSpan.Parse(textFile[j]));
-                    }
-                }
+                refresh();
             }
             else
             {
-                Logger.LogMessage("invalid category");
+                Logger.LogMessage("invalid category, so no category loaded");
+            }
+        }
+
+        public void refresh()
+        {
+            Logger.LogMessage("run chosen: " + category);
+            comparison.Clear(); golds.Clear();
+            //search for comparison splits
+            string target = "splits/data/" + category + ".txt";
+            if (File.Exists(target))
+            {
+                string[] textFile = File.ReadAllLines(target);
+                for (int j = 0; j < textFile.Length; j++)
+                {
+                    comparison.Add(TimeSpan.Parse(textFile[j]));
+                }
+            }
+            //search for gold splits
+            target = "splits/data/" + category + " Golds.txt";
+            if (File.Exists(target))
+            {
+                string[] textFile = File.ReadAllLines(target);
+                for (int j = 0; j < textFile.Length; j++)
+                {
+                    golds.Add(TimeSpan.Parse(textFile[j]));
+                }
             }
         }
 
@@ -276,7 +283,7 @@ namespace HunieMod
                     }
                     File.WriteAllLines(target, spansToStrings(golds));
                 }
-                Logger.LogMessage("writing PB Attempt.txt");
+                //Logger.LogMessage("writing PB Attempt.txt");
                 File.WriteAllText("splits/" + category + " Last Attempt.txt", finalRunDisplay);
             }
             category = "";
@@ -312,7 +319,7 @@ namespace HunieMod
         public void push(string s)
         {
             finalRunDisplay += s;
-            Logger.LogMessage(finalRunDisplay);
+            //Logger.LogMessage(finalRunDisplay);
         }
 
         private string[] spansToStrings(List<TimeSpan> list)

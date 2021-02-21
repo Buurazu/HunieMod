@@ -161,5 +161,16 @@ namespace HunieMod
         {
             StartNewRun(saveFileIndex, true);
         }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(SettingsCellApp), "OnPanelOptionSelected")]
+        public static void AutoDifficulty(ref SettingsSwitchPanel settingsSwitchPanel, ref SettingsSwitchPanel ____settingsPanelDifficulty)
+        {
+            if (settingsSwitchPanel == ____settingsPanelDifficulty && BaseHunieModPlugin.lastChosenDifficulty == 0 && BaseHunieModPlugin.run != null)
+            {
+                BaseHunieModPlugin.run.category = RunTimer.categories[BaseHunieModPlugin.lastChosenCategory] + " " + RunTimer.difficulties[(int)GameManager.System.Player.settingsDifficulty+1];
+                BaseHunieModPlugin.run.refresh();
+            }
+        }
     }
 }

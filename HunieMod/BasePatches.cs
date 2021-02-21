@@ -27,6 +27,8 @@ namespace HunieMod
         public static int startingCompletedGirls = 0;
         public static int startingRelationship = 0;
 
+        public static bool titleScreenInteractive = true;
+
         public static void InitSearchForMe()
         {
             searchForMe = 123456789;
@@ -36,6 +38,7 @@ namespace HunieMod
         [HarmonyPatch(typeof(LocationManager), "OnLocationArrival")]
         public static void PostReturnNotification()
         {
+            titleScreenInteractive = true; //reset title screen interactive here
             if (BaseHunieModPlugin.cheatsEnabled) GameUtil.ShowNotification(CellNotificationType.MESSAGE, "CHEATS ARE ENABLED");
             else if (BaseHunieModPlugin.hasReturned) GameUtil.ShowNotification(CellNotificationType.MESSAGE, "This is for practice purposes only");
         }
@@ -109,6 +112,7 @@ namespace HunieMod
         [HarmonyPatch(typeof(LoadScreen), "OnStartGameMale")]
         public static void MaleStart()
         {
+            titleScreenInteractive = false;
             if (!BaseHunieModPlugin.cheatsEnabled)
                 searchForMe = 111;
         }
@@ -117,8 +121,16 @@ namespace HunieMod
         [HarmonyPatch(typeof(LoadScreen), "OnStartGameFemale")]
         public static void FemaleStart()
         {
+            titleScreenInteractive = false;
             if (!BaseHunieModPlugin.cheatsEnabled)
                 searchForMe = 111;
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(LoadScreen), "OnContinueGame")]
+        public static void ContinueGame(ref int saveFileIndex)
+        {
+            titleScreenInteractive = false;
         }
 
         [HarmonyPrefix]
