@@ -325,11 +325,13 @@ namespace HunieMod
                 if (Input.GetKeyDown(KeyCode.R) && run != null)
                 {
                     run.reset(true);
+                    GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Run reset!");
                 }
                 //quit run on Ctrl+Q
                 if (Input.GetKeyDown(KeyCode.Q) && run != null)
                 {
                     run.reset(false);
+                    GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Run quit!");
                 }
             }
 
