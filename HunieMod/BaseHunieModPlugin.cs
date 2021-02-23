@@ -314,9 +314,23 @@ namespace HunieMod
             }
 
             //display the splits folder on Ctrl+S
-            if (Input.GetKeyDown(KeyCode.S) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
             {
-                System.Diagnostics.Process.Start(Directory.GetCurrentDirectory() + "/splits");
+                //display the splits folder on Ctrl+S
+                if (Input.GetKeyDown(KeyCode.S))
+                {
+                    System.Diagnostics.Process.Start(Directory.GetCurrentDirectory() + "/splits");
+                }
+                //reset run on Ctrl+R
+                if (Input.GetKeyDown(KeyCode.R) && run != null)
+                {
+                    run.reset(true);
+                }
+                //quit run on Ctrl+Q
+                if (Input.GetKeyDown(KeyCode.Q) && run != null)
+                {
+                    run.reset(false);
+                }
             }
 
             if (cheatsEnabled)
