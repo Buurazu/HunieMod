@@ -319,7 +319,15 @@ namespace HunieMod
                 //display the splits folder on Ctrl+S
                 if (Input.GetKeyDown(KeyCode.S))
                 {
-                    System.Diagnostics.Process.Start(Directory.GetCurrentDirectory() + "/splits");
+                    if (GameManager.System.GameState == GameState.TITLE)
+                        System.Diagnostics.Process.Start(Directory.GetCurrentDirectory() + "/splits");
+                    /*
+                    else if (run != null)
+                    {
+                        run.save();
+                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Run saved!");
+                    }*/
+
                 }
                 //reset run on Ctrl+R
                 if (Input.GetKeyDown(KeyCode.R) && run != null)
