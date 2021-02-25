@@ -34,6 +34,7 @@ namespace HunieMod
         public static ConfigEntry<Boolean> InputModsEnabled { get; private set; }
         public static ConfigEntry<Boolean> InGameTimer { get; private set; }
         public static ConfigEntry<int> SplitRules { get; private set; }
+        public static ConfigEntry<Boolean> VsyncEnabled { get; private set; }
         public static ConfigEntry<Boolean> CapAt144 { get; private set; }
 
         //hasReturned is used to display "This is for practice purposes" after a return to main menu, until you start a new file
@@ -55,6 +56,10 @@ namespace HunieMod
 
         private void Awake()
         {
+            VsyncEnabled = Config.Bind(
+                "Settings", nameof(VsyncEnabled),
+                false,
+                "Enable or disable Vsync. The FPS cap below will only take effect with it disabled");
             CapAt144 = Config.Bind(
                 "Settings", nameof(CapAt144),
                 true,
@@ -104,11 +109,14 @@ namespace HunieMod
 
         void Start()
         {
-            QualitySettings.vSyncCount = 0;
-            if (CapAt144.Value)
-                Application.targetFrameRate = 144;
-            else
-                Application.targetFrameRate = 60;
+            if (!VsyncEnabled.Value)
+            {
+                QualitySettings.vSyncCount = 0;
+                if (CapAt144.Value)
+                    Application.targetFrameRate = 144;
+                else
+                    Application.targetFrameRate = 60;
+            }
 
             Harmony.CreateAndPatchAll(typeof(BasePatches), null);
             //initiate the variable used for autosplitting

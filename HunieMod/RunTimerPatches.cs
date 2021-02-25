@@ -54,32 +54,47 @@ namespace HunieMod
             */
         }
 
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
-        public static void DisplayOurInfo(PuzzleGame __instance, ref int ____goalAffection, ref bool ____victory, ref bool ____isBonusRound)
+        public static void ChangePuzzleUIText()
         {
             UIPuzzleStatus status = GameManager.Stage.uiPuzzle.puzzleStatus;
             RunTimer run = BaseHunieModPlugin.run;
+            status.affectionLabel.SetText("^C" + RunTimer.colors[(int)run.splitColor] + "FF" + run.splitText);
+
+            if (run.prevColor != RunTimer.SplitColors.WHITE)
+            {
+                status.passionSubtitle.SetText("This Split/Gold");
+                string passionText = "^C" + RunTimer.colors[(int)run.prevColor] + "FF" + run.prevText + "^C" + RunTimer.colors[(int)run.goldColor] + "FF";
+                if (run.goldText != "")
+                {
+                    if (run.prevText.Length <= 6) passionText += " ";
+                    passionText += "[" + run.goldText + "]";
+                }
+                status.passionLabel.SetText(passionText);
+            }
+            else if (run.goldText != "")
+            {
+                string passionText = "^C" + RunTimer.colors[(int)run.goldColor] + "FF" + run.goldText;
+                status.passionLabel.SetText(passionText);
+            }
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
+        public static void DisplayOurInfo()
+        {
             if (preventAllUpdate)
             {
-                status.affectionLabel.SetText("^C" + RunTimer.colors[(int)run.splitColor] + "FF" + run.splitText);
+                ChangePuzzleUIText();
+            }
+        }
 
-                if (run.prevColor != RunTimer.SplitColors.WHITE)
-                {
-                    status.passionSubtitle.SetText("This Split/Gold");
-                    string passionText = "^C" + RunTimer.colors[(int)run.prevColor] + "FF" + run.prevText + "^C" + RunTimer.colors[(int)run.goldColor] + "FF";
-                    if (run.goldText != "")
-                    {
-                        if (run.prevText.Length <= 6) passionText += " ";
-                        passionText += "[" + run.goldText + "]";
-                    }
-                    status.passionLabel.SetText(passionText);
-                }
-                else if (run.goldText != "")
-                {
-                    string passionText = "^C" + RunTimer.colors[(int)run.goldColor] + "FF" + run.goldText;
-                    status.passionLabel.SetText(passionText);
-                }
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PuzzleManager), "ShowPuzzleJackpotReward")]
+        public static void PreventBlipOfPassionZero()
+        {
+            if (preventAllUpdate)
+            {
+                ChangePuzzleUIText();
             }
         }
 
