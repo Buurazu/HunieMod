@@ -91,9 +91,8 @@ namespace HunieMod
             preventAllUpdate = false;
 
             UIPuzzleStatus status = GameManager.Stage.uiPuzzle.puzzleStatus;
-            int plevel = (int)AccessTools.Field(typeof(UIPuzzleStatus), "_passionLevel").GetValue(status);
             status.passionSubtitle.SetText("Passion Level");
-
+            status.SetPassionLevel(0);
         }
 
         public static void UpdateFiles()

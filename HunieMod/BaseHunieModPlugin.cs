@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "1.4";
+        public const string PluginVersion = "1.5";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -120,6 +120,7 @@ namespace HunieMod
                 System.IO.Directory.CreateDirectory("splits");
                 System.IO.Directory.CreateDirectory("splits/data");
             }
+            RunTimer.ConvertOldSplits();
 
             //Check for a new update
             WebClient client = new WebClient();

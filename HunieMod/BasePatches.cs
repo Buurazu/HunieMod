@@ -68,13 +68,13 @@ namespace HunieMod
                     if (startingCompletedGirls < 12)
                     {
                         //check our rules
-                        if (run.goal <= 2 || BaseHunieModPlugin.SplitRules.Value <= 0) didSplit = run.split();
-                        else if (BaseHunieModPlugin.SplitRules.Value == 1 && !____isBonusRound) didSplit = run.split();
-                        else if (BaseHunieModPlugin.SplitRules.Value == 2 && ____isBonusRound) didSplit = run.split();
+                        if (run.goal <= 2 || BaseHunieModPlugin.SplitRules.Value <= 0) didSplit = run.split(____isBonusRound);
+                        else if (BaseHunieModPlugin.SplitRules.Value == 1 && !____isBonusRound) didSplit = run.split(____isBonusRound);
+                        else if (BaseHunieModPlugin.SplitRules.Value == 2 && ____isBonusRound) didSplit = run.split(____isBonusRound);
                         //check for final split regardless of option
                         //technically someone could just repeat sex with a girl to trigger this split. if they do that, too bad
                         else if (____isBonusRound && (run.goal == startingCompletedGirls + 1))
-                            didSplit = run.split();
+                            didSplit = run.split(____isBonusRound);
                     }
                     if (didSplit)
                     {
