@@ -346,6 +346,12 @@ namespace HunieMod
                     else goldDates.Add(s);
                 }
             }
+            else //category == ""
+            {
+                //reset the timer for each split if we aren't in a category
+                runTimer.Reset();
+                runTimer.Start();
+            }
 
             splitText = val;
             //Logger.LogMessage(splitText + " " + goldText);

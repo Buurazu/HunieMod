@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "1.5";
+        public const string PluginVersion = "1.5.1";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -58,7 +58,7 @@ namespace HunieMod
         {
             VsyncEnabled = Config.Bind(
                 "Settings", nameof(VsyncEnabled),
-                false,
+                true,
                 "Enable or disable Vsync. The FPS cap below will only take effect with it disabled");
             CapAt144 = Config.Bind(
                 "Settings", nameof(CapAt144),

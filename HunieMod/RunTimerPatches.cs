@@ -35,7 +35,11 @@ namespace HunieMod
                 //run.goal should no longer be 100% now, so this will only execute once
             }
 
-            if (initialTimerDelay.IsRunning && initialTimerDelay.ElapsedMilliseconds > 1000)
+            int goalMillis = 1000;
+            //lower milliseconds before stats show in bonus rounds, because it fades away too quick
+            if (isBonusRound) goalMillis = 500;
+
+            if (initialTimerDelay.IsRunning && initialTimerDelay.ElapsedMilliseconds > goalMillis)
             {
                 initialTimerDelay.Reset();
                 preventAllUpdate = true;
