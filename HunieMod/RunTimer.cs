@@ -451,6 +451,7 @@ namespace HunieMod
             }
             category = "";
             goal = -1;
+            runTimer.Reset(); runTimer.Start();
         }
 
         //a run has finished; is it faster than our comparison?
