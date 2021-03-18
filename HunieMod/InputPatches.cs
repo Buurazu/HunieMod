@@ -16,41 +16,30 @@ namespace HunieMod
     {
         public static bool mouseDown = false;
 
-        public static KeyCode[] mouseControllerButtons = new KeyCode[] { KeyCode.JoystickButton0, KeyCode.JoystickButton1, KeyCode.JoystickButton2, KeyCode.JoystickButton3 };
-        public static KeyCode[] mouseKeyboardKeys = new KeyCode[] { KeyCode.W, KeyCode.A, KeyCode.S, KeyCode.D, KeyCode.Q, KeyCode.E };
+        public static List<KeyCode> mouseKeyboardKeys = new List<KeyCode>();
 
         public static float[] prevAxises = new float[BaseHunieModPlugin.AXISES+1];
 
-        public const float DEADZONE = 0.25f;
+        public const float DEADZONE = 0.5f;
 
         public static bool mashCheat = false;
 
-        //public static bool mouseWasDown = false;
-        //public static bool mouseWasClicked = false;
-        //public static Stopwatch stopwatch = new Stopwatch();
-        //public static int updatemillis = 0;
-
         public static BepInEx.Logging.ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("InputPatches");
-
 
         public static bool IsMouseKeyDown()
         {
             if (mashCheat) return true;
             if (BaseHunieModPlugin.MouseWheelEnabled.Value && Input.GetAxis("Mouse ScrollWheel") != 0) return true;
-            for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)
+            if (BaseHunieModPlugin.AxisesEnabled.Value)
             {
-                if (Mathf.Abs(Input.GetAxis("Axis " + i)) > DEADZONE && Mathf.Abs(prevAxises[i]) <= DEADZONE) return true;
-            }
-            if (BaseHunieModPlugin.KeyboardEnabled.Value)
-            {
-                for (int i = 0; i < mouseKeyboardKeys.Length; i++)
+                for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)
                 {
-                    if (Input.GetKeyDown(mouseKeyboardKeys[i])) return true;
+                    if (Mathf.Abs(Input.GetAxisRaw("Axis " + i)) > DEADZONE && Mathf.Abs(prevAxises[i]) <= DEADZONE) return true;
                 }
             }
-            for (int i = 0; i < mouseControllerButtons.Length; i++)
+            for (int i = 0; i < mouseKeyboardKeys.Count; i++)
             {
-                if (Input.GetKeyDown(mouseControllerButtons[i])) return true;
+                if (Input.GetKeyDown(mouseKeyboardKeys[i])) return true;
             }
             return false;
         }
@@ -59,20 +48,16 @@ namespace HunieMod
         {
             if (mashCheat) return true;
             if (BaseHunieModPlugin.MouseWheelEnabled.Value && Input.GetAxis("Mouse ScrollWheel") != 0) return true;
-            for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)
+            if (BaseHunieModPlugin.AxisesEnabled.Value)
             {
-                if (Mathf.Abs(Input.GetAxis("Axis " + i)) <= DEADZONE && Mathf.Abs(prevAxises[i]) > DEADZONE) return true;
-            }
-            if (BaseHunieModPlugin.KeyboardEnabled.Value)
-            {
-                for (int i = 0; i < mouseKeyboardKeys.Length; i++)
+                for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)
                 {
-                    if (Input.GetKeyUp(mouseKeyboardKeys[i])) return true;
+                    if (Mathf.Abs(Input.GetAxisRaw("Axis " + i)) <= DEADZONE && Mathf.Abs(prevAxises[i]) > DEADZONE) return true;
                 }
             }
-            for (int i = 0; i < mouseControllerButtons.Length; i++)
+            for (int i = 0; i < mouseKeyboardKeys.Count; i++)
             {
-                if (Input.GetKeyUp(mouseControllerButtons[i])) return true;
+                if (Input.GetKeyUp(mouseKeyboardKeys[i])) return true;
             }
             return false;
         }
@@ -81,21 +66,16 @@ namespace HunieMod
         {
             if (mashCheat) return true;
             if (BaseHunieModPlugin.MouseWheelEnabled.Value && Input.GetAxis("Mouse ScrollWheel") != 0) return true;
-
-            for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)
+            if (BaseHunieModPlugin.AxisesEnabled.Value)
             {
-                if (Mathf.Abs(Input.GetAxis("Axis " + i)) > DEADZONE) return true;
-            }
-            if (BaseHunieModPlugin.KeyboardEnabled.Value)
-            {
-                for (int i = 0; i < mouseKeyboardKeys.Length; i++)
+                for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)
                 {
-                    if (Input.GetKey(mouseKeyboardKeys[i])) return true;
+                    if (Mathf.Abs(Input.GetAxisRaw("Axis " + i)) > DEADZONE) return true;
                 }
             }
-            for (int i = 0; i < mouseControllerButtons.Length; i++)
+            for (int i = 0; i < mouseKeyboardKeys.Count; i++)
             {
-                if (Input.GetKey(mouseControllerButtons[i])) return true;
+                if (Input.GetKey(mouseKeyboardKeys[i])) return true;
             }
             return false;
         }
@@ -164,7 +144,7 @@ namespace HunieMod
 
             for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)
             {
-                prevAxises[i] = Input.GetAxis("Axis " + i);
+                prevAxises[i] = Input.GetAxisRaw("Axis " + i);
             }
 
             return false;

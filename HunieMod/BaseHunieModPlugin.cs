@@ -20,17 +20,18 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "1.5.1";
+        public const string PluginVersion = "1.6";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
+        public static ConfigEntry<String> MouseKeys { get; private set; }
+        public static ConfigEntry<String> ControllerKeys { get; private set; }
         public static ConfigEntry<KeyboardShortcut> ResetKey { get; private set; }
         public static ConfigEntry<KeyboardShortcut> ResetKey2 { get; private set; }
         public static ConfigEntry<Boolean> CensorshipEnabled { get; private set; }
-        public static ConfigEntry<Boolean> ReturnToMenuEnabled { get; private set; }
         public static ConfigEntry<Boolean> CheatHotkeyEnabled { get; private set; }
         public static ConfigEntry<Boolean> MouseWheelEnabled { get; private set; }
-        public static ConfigEntry<Boolean> KeyboardEnabled { get; private set; }
+        public static ConfigEntry<Boolean> AxisesEnabled { get; private set; }
         public static ConfigEntry<Boolean> InputModsEnabled { get; private set; }
         public static ConfigEntry<Boolean> InGameTimer { get; private set; }
         public static ConfigEntry<int> SplitRules { get; private set; }
@@ -56,6 +57,41 @@ namespace HunieMod
 
         private void Awake()
         {
+            ResetKey = Config.Bind(
+                "Settings", nameof(ResetKey),
+                new KeyboardShortcut(KeyCode.F4),
+                "The hotkey to use for going back to the title (set to None to disable)");
+            ResetKey2 = Config.Bind(
+                "Settings", nameof(ResetKey2),
+                new KeyboardShortcut(KeyCode.Escape),
+                "Alternate hotkey to use for going back to the title (set to None to disable)");
+
+            InputModsEnabled = Config.Bind(
+                "Settings", nameof(InputModsEnabled),
+                true,
+                "Enable or disable all fake clicks (overrides the below settings)");
+            MouseWheelEnabled = Config.Bind(
+                "Settings", nameof(MouseWheelEnabled),
+                true,
+                "Enable or disable the mouse wheel being treated as a click");
+            AxisesEnabled = Config.Bind(
+                "Settings", nameof(AxisesEnabled),
+                true,
+                "Enable or disable controller axises being treated as a click");
+            MouseKeys = Config.Bind(
+                "Settings", nameof(MouseKeys),
+                "W, A, S, D, Q, E, UpArrow, DownArrow, LeftArrow, RightArrow",
+                "The keys that will be treated as a click (set to None for no keyboard clicks)");
+            ControllerKeys = Config.Bind(
+                "Settings", nameof(ControllerKeys),
+                "JoystickButton0, JoystickButton1, JoystickButton2, JoystickButton3",
+                "The controller buttons that will be treated as a click (set to None for no controller clicks)");
+
+            CensorshipEnabled = Config.Bind(
+                "Settings", nameof(CensorshipEnabled),
+                true,
+                "Enable or disable the censorship mods");
+
             VsyncEnabled = Config.Bind(
                 "Settings", nameof(VsyncEnabled),
                 true,
@@ -64,6 +100,7 @@ namespace HunieMod
                 "Settings", nameof(CapAt144),
                 true,
                 "Cap the game at 144 FPS. If false, it will cap at 60 FPS instead. 144 FPS could help mash speed, but the higher framerate could mean bonus round affection drains faster (especially on Hard)");
+            
             InGameTimer = Config.Bind(
                 "Settings", nameof(InGameTimer),
                 true,
@@ -72,34 +109,7 @@ namespace HunieMod
                 "Settings", nameof(SplitRules),
                 0,
                 "0 = Split on every date/bonus, 1 = Split only after dates, 2 = Split only after bonus rounds\n(You may want to delete your run comparison/golds after changing this. Get Laids are excluded from this option)");
-            CensorshipEnabled = Config.Bind(
-                "Settings", nameof(CensorshipEnabled),
-                true,
-                "Enable or disable the censorship mods");
-            ReturnToMenuEnabled = Config.Bind(
-                "Settings", nameof(ReturnToMenuEnabled),
-                true,
-                "Enable or disable the return to main menu feature");
-            ResetKey = Config.Bind(
-                "Settings", nameof(ResetKey),
-                new KeyboardShortcut(KeyCode.F4),
-                "The key to use for going back to the title or quitting the game");
-            ResetKey2 = Config.Bind(
-                "Settings", nameof(ResetKey2),
-                new KeyboardShortcut(KeyCode.Escape),
-                "Alternate key to use");
-            MouseWheelEnabled = Config.Bind(
-                "Settings", nameof(MouseWheelEnabled),
-                true,
-                "Enable or disable the mouse wheel being treated as a click");
-            KeyboardEnabled = Config.Bind(
-                "Settings", nameof(KeyboardEnabled),
-                true,
-                "Enable or disable keyboard keys being treated as a click");
-            InputModsEnabled = Config.Bind(
-                "Settings", nameof(InputModsEnabled),
-                true,
-                "Enable or disable all fake clicks");
+
             CheatHotkeyEnabled = Config.Bind(
                 "Settings", nameof(CheatHotkeyEnabled),
                 true,
@@ -147,18 +157,29 @@ namespace HunieMod
                 ItemNameList.Add(item.name, item.id);
             }
 
-            if (CensorshipEnabled.Value)
+            if (CensorshipEnabled.Value) Harmony.CreateAndPatchAll(typeof(CensorshipPatches), null);
+            if (InputModsEnabled.Value) Harmony.CreateAndPatchAll(typeof(InputPatches), null);
+            if (InGameTimer.Value) Harmony.CreateAndPatchAll(typeof(RunTimerPatches), null);
+
+            string both = MouseKeys.Value + "," + ControllerKeys.Value;
+            string[] keys = both.Split(',');
+            string validKeycodes = "Mouse button bound to keys/buttons: ";
+            for (int i = 0; i < keys.Length; i++)
             {
-                Harmony.CreateAndPatchAll(typeof(CensorshipPatches), null);
+                keys[i] = keys[i].Trim();
+                KeyCode kc = KeyCode.None;
+                try
+                {
+                    kc = (KeyCode)System.Enum.Parse(typeof(KeyCode), keys[i]);
+                }
+                catch { Logger.LogMessage(keys[i] + " is not a valid keycode name!"); }
+                if (kc != KeyCode.None)
+                {
+                    InputPatches.mouseKeyboardKeys.Add(kc);
+                    validKeycodes += keys[i] + ", ";
+                }
             }
-            if (InputModsEnabled.Value)
-            {
-                Harmony.CreateAndPatchAll(typeof(InputPatches), null);
-            }
-            if (InGameTimer.Value)
-            {
-                Harmony.CreateAndPatchAll(typeof(RunTimerPatches), null);
-            }
+            Logger.LogMessage(validKeycodes);
         }
 
         public static int GameVersion()
@@ -298,25 +319,22 @@ namespace HunieMod
                 }
             }
 
-            if (ReturnToMenuEnabled.Value)
+            if (ResetKey.Value.IsDown() || ResetKey2.Value.IsDown())
             {
-                if (ResetKey.Value.IsDown() || ResetKey2.Value.IsDown())
+                if (GameManager.System.GameState == GameState.TITLE)
                 {
-                    if (GameManager.System.GameState == GameState.TITLE)
+                    //GameUtil.QuitGame();
+                }
+                else
+                {
+                    if (GameUtil.EndGameSession(false, false, false))
                     {
-                        //GameUtil.QuitGame();
-                    }
-                    else
-                    {
-                        if (GameUtil.EndGameSession(false, false, false))
+                        hasReturned = true;
+                        BasePatches.searchForMe = -111;
+                        if (run != null)
                         {
-                            hasReturned = true;
-                            BasePatches.searchForMe = -111;
-                            if (run != null)
-                            {
-                                run.reset();
-                                run = null;
-                            }
+                            run.reset();
+                            run = null;
                         }
                     }
                 }
