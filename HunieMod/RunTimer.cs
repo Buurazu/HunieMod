@@ -26,7 +26,7 @@ namespace HunieMod
         public static string[] colors = new string[] { "dbdbdb", "98d5d7", "ffb2b2", "f1d983" };
         //public static Color[] unityColors = new Color[] { new Color(255, 255, 255), new Color(178, 214, 255), new Color(255, 178, 178), new Color(221, 175, 76) };
 
-        public Stopwatch runTimer;
+        public long runTimer;
         public int runFile;
         public string category;
         public int goal;
@@ -52,7 +52,7 @@ namespace HunieMod
             //the older .net version doesn't have timespan.tostring options but this works maybe?
             //datetime likes to start at 12 hours but is fine for quick minutes/seconds displaying
             if (time.Hours != 0)
-                val += Mathf.Abs(time.Hours) + new DateTime(time.Duration().Ticks).ToString(@"mm\:ss\.f");
+                val += Mathf.Abs(time.Hours) + ":" + new DateTime(time.Duration().Ticks).ToString(@"mm\:ss\.f");
             else if (time.Minutes != 0)
                 val += new DateTime(time.Duration().Ticks).ToString(@"m\:ss\.f");
             else
@@ -72,18 +72,12 @@ namespace HunieMod
             string target2 = "splits/data/" + category + " Bonuses.txt";
             if (File.Exists(target) && File.Exists(target2))
             {
-                string[] textFile = File.ReadAllLines(target); string[] textFile2 = File.ReadAllLines(target2);
-                TimeSpan s = new TimeSpan();
-                foreach (string line in textFile)
+                TimeSpan s1 = ReadFile(target); TimeSpan s2 = ReadFile(target2);
+                if (s1 != TimeSpan.Zero && s2 != TimeSpan.Zero)
                 {
-                    s += TimeSpan.Parse(line);
+                    if (chop) val = convert(s1 + s2);
+                    else val = (s1 + s2).ToString();
                 }
-                foreach (string line in textFile2)
-                {
-                    s += TimeSpan.Parse(line);
-                }
-                if (chop) val = convert(s);
-                else val = s.ToString();
             }
             return val;
         }
@@ -99,17 +93,8 @@ namespace HunieMod
             string target2 = "splits/data/" + categories[cat] + " " + difficulties[difficulty] + " Bonuses Golds.txt";
             if (File.Exists(target) && File.Exists(target2))
             {
-                string[] textFile = File.ReadAllLines(target); string[] textFile2 = File.ReadAllLines(target2);
-                TimeSpan s = new TimeSpan();
-                foreach (string line in textFile)
-                {
-                    s += TimeSpan.Parse(line);
-                }
-                foreach (string line in textFile2)
-                {
-                    s += TimeSpan.Parse(line);
-                }
-                val = convert(s);
+                TimeSpan s1 = ReadFile(target); TimeSpan s2 = ReadFile(target2);
+                if (s1 != TimeSpan.Zero && s2 != TimeSpan.Zero) val = convert(s1 + s2);
             }
             return val;
         }
@@ -169,14 +154,41 @@ namespace HunieMod
             }
         }
 
+        //adds contents of the file to the given list, if provided
+        //returns the sum of all found timespans
+        private static TimeSpan ReadFile(string target, List<TimeSpan> list = null)
+        {
+            TimeSpan sum = new TimeSpan();
+            if (File.Exists(target))
+            {
+                string[] textFile = File.ReadAllLines(target);
+                for (int j = 0; j < textFile.Length; j++)
+                {
+                    TimeSpan temp = TimeSpan.Parse(textFile[j]);
+                    if (temp.Ticks > 0)
+                    {
+                        if (list != null) list.Add(temp);
+                        sum += temp;
+                    }
+                    else
+                    {
+                        //a negative value was found in a saved file. this should be impossible but has happened before
+                        if (list != null) list.Clear();
+                        File.Delete(target);
+                        return TimeSpan.Zero;
+                    }
+                }
+            }
+            return sum;
+        }
+
         public RunTimer()
         {
             //no new file, so it's just practice
             runFile = -1;
             category = "";
             goal = -1;
-            runTimer = new Stopwatch();
-            runTimer.Start();
+            runTimer = DateTime.UtcNow.Ticks;
         }
         public RunTimer(int newFile, int cat, int difficulty) : this()
         {
@@ -200,43 +212,25 @@ namespace HunieMod
         public void refresh()
         {
             Logger.LogMessage("run chosen: " + category);
+            TimeSpan tutorialTime = TimeSpan.Zero;
+            if (splits.Count == 1) tutorialTime = goldDates[0];
             comparisonDates.Clear(); comparisonBonuses.Clear();
             goldDates.Clear(); goldBonuses.Clear();
+
             //search for comparison date splits
             string target = "splits/data/" + category + " Dates.txt"; string target2 = "splits/data/" + category + " Bonuses.txt";
-            if (File.Exists(target))
-            {
-                string[] textFile = File.ReadAllLines(target);
-                for (int j = 0; j < textFile.Length; j++)
-                {
-                    comparisonDates.Add(TimeSpan.Parse(textFile[j]));
-                }
-            }
-            if (File.Exists(target2))
-            {
-                string[] textFile2 = File.ReadAllLines(target2);
-                for (int j = 0; j < textFile2.Length; j++)
-                {
-                    comparisonBonuses.Add(TimeSpan.Parse(textFile2[j]));
-                }
-            }
+            ReadFile(target, comparisonDates); ReadFile(target2, comparisonBonuses);
+            
             //search for gold splits
+            //this assumes difficulty is only changed midrun when you have one split (tutorial)
             target = "splits/data/" + category + " Dates Golds.txt"; target2 = "splits/data/" + category + " Bonuses Golds.txt";
-            if (File.Exists(target))
-            {
-                string[] textFile = File.ReadAllLines(target);
-                for (int j = 0; j < textFile.Length; j++)
-                {
-                    goldDates.Add(TimeSpan.Parse(textFile[j]));
-                }
-            }
-            if (File.Exists(target2))
-            {
-                string[] textFile2 = File.ReadAllLines(target2);
-                for (int j = 0; j < textFile2.Length; j++)
-                {
-                    goldBonuses.Add(TimeSpan.Parse(textFile2[j]));
-                }
+            ReadFile(target, goldDates); ReadFile(target2, goldBonuses);
+
+            if (tutorialTime != TimeSpan.Zero) {
+                if (goldDates.Count == 0)
+                    goldDates.Add(tutorialTime);
+                else if (goldDates[0] > tutorialTime)
+                    goldDates[0] = tutorialTime;
             }
         }
 
@@ -252,7 +246,15 @@ namespace HunieMod
 
         public bool split(bool bonus = false)
         {
-            splits.Add(runTimer.Elapsed);
+            long tickDiff = DateTime.UtcNow.Ticks - runTimer;
+            //I hope this code never runs
+            if (tickDiff < 0)
+            {
+                reset(false);
+                GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Timer somehow became negative; run quit! Please report this!");
+                return false;
+            }
+            splits.Add(new TimeSpan(tickDiff));
             isBonus.Add(bonus);
             splitColor = SplitColors.WHITE; prevColor = SplitColors.WHITE; goldColor = SplitColors.WHITE;
             splitText = ""; prevText = ""; goldText = "";
@@ -349,8 +351,7 @@ namespace HunieMod
             else //category == ""
             {
                 //reset the timer for each split if we aren't in a category
-                runTimer.Reset();
-                runTimer.Start();
+                runTimer = DateTime.UtcNow.Ticks;
             }
 
             splitText = val;
@@ -364,94 +365,52 @@ namespace HunieMod
             //save golds on reset of a category
             if (category != "" && saveGolds)
             {
-                string target = "splits/data/" + category + " Dates Golds.txt"; string target2 = "splits/data/" + category + " Bonuses Golds.txt";
-                if (File.Exists(target))
+                //save date and bonus golds separately, but without copying all the code twice lol
+                string[] targets = { "splits/data/" + category + " Dates Golds.txt", "splits/data/" + category + " Bonuses Golds.txt" };
+                List<TimeSpan>[] golds = { goldDates, goldBonuses };
+                for (int i = 0; i < targets.Length; i++)
                 {
-                    //merge the two golds lists
-                    string[] textFile = File.ReadAllLines(target);
-                    List<TimeSpan> prevGolds = new List<TimeSpan>();
-                    List<TimeSpan> newGolds = new List<TimeSpan>();
-                    for (int j = 0; j < textFile.Length; j++)
+                    string target = targets[i]; List<TimeSpan> gold = golds[i];
+
+                    if (File.Exists(target))
                     {
-                        prevGolds.Add(TimeSpan.Parse(textFile[j]));
-                    }
-                    for (int j = 0; j < prevGolds.Count; j++)
-                    {
-                        //make sure our golds isn't too short to compare
-                        if (goldDates.Count - 1 < j) { newGolds.Add(prevGolds[j]); }
-                        else
+                        //merge the two golds lists
+                        List<TimeSpan> prevGolds = new List<TimeSpan>(); ReadFile(target, prevGolds);
+                        List<TimeSpan> newGolds = new List<TimeSpan>();
+
+                        for (int j = 0; j < prevGolds.Count; j++)
                         {
-                            if (goldDates[j] < prevGolds[j]) newGolds.Add(goldDates[j]);
-                            else newGolds.Add(prevGolds[j]);
+                            //make sure our golds isn't too short to compare
+                            if (gold.Count - 1 < j) { newGolds.Add(prevGolds[j]); }
+                            else
+                            {
+                                if (gold[j] < prevGolds[j]) newGolds.Add(gold[j]);
+                                else newGolds.Add(prevGolds[j]);
+                            }
                         }
-                    }
-                    //make sure the file's golds isn't too short to compare
-                    if (goldDates.Count > prevGolds.Count)
-                    {
-                        for (int j = prevGolds.Count; j < goldDates.Count; j++)
+                        //make sure the file's golds isn't too short to compare
+                        if (gold.Count > prevGolds.Count)
                         {
-                            newGolds.Add(goldDates[j]);
+                            for (int j = prevGolds.Count; j < gold.Count; j++)
+                            {
+                                newGolds.Add(gold[j]);
+                            }
                         }
+                        File.WriteAllLines(target, spansToStrings(newGolds));
                     }
-                    File.WriteAllLines(target, spansToStrings(newGolds));
+                    else
+                    {
+                        //create a new file with our current golds list
+                        File.WriteAllLines(target, spansToStrings(gold));
+                    }
                 }
-                else
-                {
-                    //create a new file with our current golds list
-                    string[] goldsString = new string[goldDates.Count];
-                    for (int i = 0; i < goldDates.Count; i++)
-                    {
-                        goldsString[i] = goldDates[i].ToString();
-                    }
-                    File.WriteAllLines(target, spansToStrings(goldDates));
-                }
-                //the same code again but for goldBonuses. zzz
-                if (File.Exists(target2))
-                {
-                    //merge the two golds lists
-                    string[] textFile = File.ReadAllLines(target2);
-                    List<TimeSpan> prevGolds = new List<TimeSpan>();
-                    List<TimeSpan> newGolds = new List<TimeSpan>();
-                    for (int j = 0; j < textFile.Length; j++)
-                    {
-                        prevGolds.Add(TimeSpan.Parse(textFile[j]));
-                    }
-                    for (int j = 0; j < prevGolds.Count; j++)
-                    {
-                        //make sure our golds isn't too short to compare
-                        if (goldBonuses.Count - 1 < j) { newGolds.Add(prevGolds[j]); }
-                        else
-                        {
-                            if (goldBonuses[j] < prevGolds[j]) newGolds.Add(goldBonuses[j]);
-                            else newGolds.Add(prevGolds[j]);
-                        }
-                    }
-                    //make sure the file's golds isn't too short to compare
-                    if (goldBonuses.Count > prevGolds.Count)
-                    {
-                        for (int j = prevGolds.Count; j < goldBonuses.Count; j++)
-                        {
-                            newGolds.Add(goldBonuses[j]);
-                        }
-                    }
-                    File.WriteAllLines(target2, spansToStrings(newGolds));
-                }
-                else
-                {
-                    //create a new file with our current golds list
-                    string[] goldsString = new string[goldBonuses.Count];
-                    for (int i = 0; i < goldBonuses.Count; i++)
-                    {
-                        goldsString[i] = goldBonuses[i].ToString();
-                    }
-                    File.WriteAllLines(target2, spansToStrings(goldBonuses));
-                }
+
                 Logger.LogMessage("writing PB Attempt.txt");
                 File.WriteAllText("splits/" + category + " Last Attempt.txt", finalRunDisplay);
             }
             category = "";
             goal = -1;
-            runTimer.Reset(); runTimer.Start();
+            runTimer = DateTime.UtcNow.Ticks;
         }
 
         //a run has finished; is it faster than our comparison?
@@ -460,7 +419,6 @@ namespace HunieMod
             if (category != "")
             {
                 string target = "splits/data/" + category + " Dates.txt"; string target2 = "splits/data/" + category + " Bonuses.txt";
-                //due to the Tutorial, even 48 shoes would have a bonus file
                 if (File.Exists(target) && File.Exists(target2))
                 {
                     //saved comparison is longer than our new one

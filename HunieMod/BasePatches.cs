@@ -82,7 +82,7 @@ namespace HunieMod
                         if (!____isBonusRound) RunTimerPatches.revertDiffDelay.Start();
                         RunTimerPatches.isBonusRound = ____isBonusRound;
                         int dateNum = startingRelationship;
-                        if (____isBonusRound) dateNum++;
+                        //if (____isBonusRound) dateNum++; I thought I need to increase this but it makes it #6
 
                         string newSplit = GameManager.Stage.girl.definition.firstName + " #" + dateNum;
                         if (GameManager.Stage.girl.definition.firstName == "Kyu" && startingCompletedGirls == 0) newSplit = "Tutorial";

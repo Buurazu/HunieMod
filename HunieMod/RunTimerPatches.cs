@@ -84,9 +84,9 @@ namespace HunieMod
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
-        public static void DisplayOurInfo()
+        public static void DisplayOurInfo(ref bool ____victory)
         {
-            if (preventAllUpdate)
+            if (preventAllUpdate && ____victory)
             {
                 ChangePuzzleUIText();
             }
@@ -184,7 +184,7 @@ namespace HunieMod
         [HarmonyPatch(typeof(SettingsCellApp), "OnPanelOptionSelected")]
         public static void AutoDifficulty(ref SettingsSwitchPanel settingsSwitchPanel, ref SettingsSwitchPanel ____settingsPanelDifficulty)
         {
-            if (settingsSwitchPanel == ____settingsPanelDifficulty && BaseHunieModPlugin.lastChosenDifficulty == 0 && BaseHunieModPlugin.run != null)
+            if (settingsSwitchPanel == ____settingsPanelDifficulty && BaseHunieModPlugin.lastChosenDifficulty == 0 && BaseHunieModPlugin.run != null && BaseHunieModPlugin.run.category != "")
             {
                 BaseHunieModPlugin.run.category = RunTimer.categories[BaseHunieModPlugin.lastChosenCategory] + " " + RunTimer.difficulties[(int)GameManager.System.Player.settingsDifficulty+1];
                 BaseHunieModPlugin.run.refresh();
