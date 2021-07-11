@@ -26,11 +26,12 @@ namespace HunieMod
         /// <returns><c>True</c> when the session was ended, <c>false</c> when ending the session was blocked due to the game's current state.</returns>
         public static bool EndGameSession(bool saveGame = true, bool revertDates = true, bool triggerValediction = true)
         {
-            if (!GM.System.Player.tutorialComplete || GetAvailableGirls(availableOnly: false, excludeCurrentGirl: false).Count == 0)
+            
+            /*if (!GM.System.Player.tutorialComplete || GetAvailableGirls(availableOnly: false, excludeCurrentGirl: false).Count == 0)
             {
                 ShowNotification(CellNotificationType.MESSAGE, "Cannot leave the tutorial");
-                return false;
-            }
+                //return false;
+            }*/
 
             //base HunieMod could just use Input.GetMouseButtonDown(0) I think
             if (Input.GetMouseButtonDown(0) || InputPatches.mouseDown)
@@ -40,7 +41,7 @@ namespace HunieMod
             }
 
             if (GM.System == null || GM.System.GameState == GameState.TITLE || GM.System.GameState == GameState.LOADING || !GM.System.Location.IsLocationSettled()
-                || (GM.System.Location.currentLocation.type == LocationType.NORMAL && !GM.Stage.uiWindows.IsDefaultWindowActive(true)))
+                || (GM.System.Location.currentLocation.type == LocationType.NORMAL && !GM.Stage.uiWindows.IsDefaultWindowActive(true) && GM.System.Player.tutorialComplete))
             {
                 ShowNotification(CellNotificationType.MESSAGE, "Cannot leave unless you could use the Girl Finder");
                 return false;
@@ -55,7 +56,7 @@ namespace HunieMod
             {
                 if (GM.System.Puzzle.Game.puzzleGameState != PuzzleGameState.WAITING)
                 {
-                    ShowNotification(CellNotificationType.MESSAGE, "Can only leave when you could make a move");
+                    ShowNotification(CellNotificationType.MESSAGE, "Can only leave puzzles when you could make a move");
                     return false;
                 }
                 if (saveGame)
@@ -72,7 +73,10 @@ namespace HunieMod
                 GM.Stage.uiGirl.stats.localY = UIGirl.GIRL_STATS_HIDDEN_Y_POS;
             }
 
-            GM.Stage.uiTop.buttonHuniebee.interactive = false;
+            GM.Stage.uiTop.buttonHuniebee.button.Disable();
+            AccessTools.Field(typeof(UITop), "_cellButtonDisabled").SetValue(GM.Stage.uiTop, true);
+
+            //bool cellButtonDisabled = (bool)AccessTools.Field(typeof(UITop), "_cellButtonDisabled")?.GetValue(GameManager.Stage.uiTop);
 
             GM.Stage.SetPausable(false);
             if (GM.Stage.cellPhone.IsOpen())
@@ -92,7 +96,10 @@ namespace HunieMod
                 GM.System.SaveGame();
 
             //remove blinking message icon
-            GM.System.Player.messages[0].viewed = true;
+            if (GM.System.Player.messages.Count > 0)
+            {
+                GM.System.Player.messages[0].viewed = true;
+            }
             GM.Stage.uiTop.RefreshMessageAlert();
             //reset cell phone defaults
             GameManager.Stage.cellPhone.cellMemory = new Dictionary<string, int>();
@@ -106,6 +113,9 @@ namespace HunieMod
             GM.System.GameState = GameState.TITLE;
             GM.Stage.uiTitle.ShowTitleScreen();
             GM.Stage.uiTitle.SaveFileSelectedEvent += OnSaveFileSelected;
+
+            //fuck it try this
+            //GameManager.System.Init(GameManager.System.Hook);
 
             return true;
         }

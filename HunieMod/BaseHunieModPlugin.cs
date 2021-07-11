@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "1.6.1";
+        public const string PluginVersion = "1.7.2";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -257,7 +257,11 @@ namespace HunieMod
 
         private void Update() // Another Unity method
         {
-            //Logger.LogMessage("scroll wheel: " + Input.GetAxis("Mouse ScrollWheel"));
+            /*bool cellButtonDisabled = (bool)AccessTools.Field(typeof(UITop), "_cellButtonDisabled")?.GetValue(GameManager.Stage.uiTop);
+            Logger.LogMessage("Cellphone unlocked: " + GameManager.System.Player.cellphoneUnlocked);
+            Logger.LogMessage("Interactive: " + GameManager.Stage.uiTop.buttonHuniebee.interactive);
+            Logger.LogMessage("Is enabled: " + GameManager.Stage.uiTop.buttonHuniebee.button.IsEnabled());
+            Logger.LogMessage("_disabled: " + cellButtonDisabled);*/
             //InputPatches.mouseWasDown = false; InputPatches.mouseWasClicked = false;
             RunTimerPatches.Update();
 
