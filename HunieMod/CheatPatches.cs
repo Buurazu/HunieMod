@@ -14,6 +14,8 @@ namespace HunieMod
     public class CheatPatches
     {
 
+        public static bool awooga;
+
         public static void AddItem(string theItem, InventoryItemPlayerData[] target = null)
         {
             if (target == null) target = GameManager.System.Player.inventory;
@@ -77,6 +79,32 @@ namespace HunieMod
                 AddGreatGiftsToInventory();
 
             }
+        }
+
+        //haha funny nude patch
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Girl), "AddGirlPiece")]
+        public static bool NudeTime(GirlPiece girlPiece)
+        {
+            if (girlPiece.type == GirlPieceType.OUTFIT && CheatPatches.awooga)
+                return false;
+            else
+                return true;
+        }
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Girl), "AddGirlPieceArtToContainer")]
+        public static bool NudeTime2(GirlPieceArt girlPieceArt, Girl __instance)
+        {
+            if ((girlPieceArt == __instance.definition.braPiece || girlPieceArt == __instance.definition.pantiesPiece) && CheatPatches.awooga)
+                return false;
+            else
+                return true;
+        }
+
+        public static void RefreshGirls()
+        {
+            GameManager.Stage.girl.ShowGirl(GameManager.Stage.girl.definition);
+            GameManager.Stage.altGirl.ShowGirl(GameManager.Stage.altGirl.definition);
         }
 
     }

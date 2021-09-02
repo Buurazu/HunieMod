@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "1.7.2";
+        public const string PluginVersion = "1.8";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -37,6 +37,7 @@ namespace HunieMod
         public static ConfigEntry<int> SplitRules { get; private set; }
         public static ConfigEntry<Boolean> VsyncEnabled { get; private set; }
         public static ConfigEntry<Boolean> CapAt144 { get; private set; }
+        public static ConfigEntry<Boolean> CustomCGs { get; private set; }
 
         //hasReturned is used to display "This is for practice purposes" after a return to main menu, until you start a new file
         public static bool hasReturned = false;
@@ -91,6 +92,11 @@ namespace HunieMod
                 "Settings", nameof(CensorshipEnabled),
                 true,
                 "Enable or disable the censorship mods");
+
+            CustomCGs = Config.Bind(
+                "Settings", nameof(CustomCGs),
+                false,
+                "Enable or disable loading custom CGs from the exe folder (i.e. Aiko.png) (requires the censorship enabled) (loading files could lag the game)");
 
             VsyncEnabled = Config.Bind(
                 "Settings", nameof(VsyncEnabled),
@@ -418,6 +424,16 @@ namespace HunieMod
                         else
                             GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Mash power disabled");
 
+                    }
+
+                    if (Input.GetKeyDown(KeyCode.N))
+                    {
+                        CheatPatches.awooga = !CheatPatches.awooga;
+                        if (CheatPatches.awooga)
+                            GameUtil.ShowNotification(CellNotificationType.MESSAGE, "AWOOOOOGA");
+                        else
+                            GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Nude cheat disabled");
+                        CheatPatches.RefreshGirls();
                     }
 
                     if (Input.GetKeyDown(KeyCode.T))

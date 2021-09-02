@@ -91,7 +91,8 @@ namespace HunieMod
 
                         if (____isBonusRound && (run.goal == startingCompletedGirls + 1))
                         {
-                            run.save();
+                            //run.save();
+                            RunTimerPatches.savePBDelay.Start();
                         }
 
                     }

@@ -15,6 +15,7 @@ namespace HunieMod
     {
         public static Stopwatch initialTimerDelay = new Stopwatch();
         public static Stopwatch revertDiffDelay = new Stopwatch();
+        public static Stopwatch savePBDelay = new Stopwatch();
         public static bool isBonusRound = false;
 
         public static bool preventAllUpdate = false;
@@ -44,6 +45,13 @@ namespace HunieMod
                 initialTimerDelay.Reset();
                 preventAllUpdate = true;
             }
+
+            if (savePBDelay.IsRunning && savePBDelay.ElapsedMilliseconds > 5000)
+            {
+                savePBDelay.Reset();
+                run.save();
+            }
+
             //there's no point to reverting our change early, because the passion level gets drained to zero by then anyway
             /*
             if (revertDiffDelay.IsRunning && revertDiffDelay.ElapsedMilliseconds > 6000)

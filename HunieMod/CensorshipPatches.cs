@@ -34,7 +34,7 @@ namespace HunieMod
         {
             ____activeThumbnailIndex = __state;
             __instance.bigPhoto.RemoveAllChildren();
-            if (__state % 4 == 3)
+            if (__state % 4 == 3 && BaseHunieModPlugin.CustomCGs.Value == true)
             {
                 SpriteObject spr = GameUtil.ImageFileToSprite(GirlNames[__state / 4] + ".png", GirlNames[__state / 4]);
 
