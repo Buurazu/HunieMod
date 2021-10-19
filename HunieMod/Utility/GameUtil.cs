@@ -149,6 +149,11 @@ namespace HunieMod
             AccessTools.Field(typeof(DialogManager), "_activeDialogScene").SetValue(GM.System.Dialog, null);
             GM.Stage.girl.ClearDialog();
             GM.Stage.altGirl.ClearDialog();
+            //these lines fix all the issues i accidentally let in with tutorial return
+            AccessTools.Field(typeof(Girl), "DialogLineBeginEvent").SetValue(GM.Stage.girl, null, BindingFlags.Public, null, null);
+            AccessTools.Field(typeof(Girl), "DialogLineReadEvent").SetValue(GM.Stage.girl, null, BindingFlags.Public, null, null);
+            AccessTools.Field(typeof(Girl), "DialogLineBeginEvent").SetValue(GM.Stage.altGirl, null, BindingFlags.Public, null, null);
+            AccessTools.Field(typeof(Girl), "DialogLineReadEvent").SetValue(GM.Stage.altGirl, null, BindingFlags.Public, null, null);
         }
 
         /// <summary>

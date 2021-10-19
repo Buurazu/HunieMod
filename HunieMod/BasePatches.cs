@@ -9,6 +9,8 @@ using BepInEx.Logging;
 using HarmonyLib;
 using HarmonyLib.Tools;
 using UnityEngine;
+using Holoville;
+using Holoville.HOTween;
 
 namespace HunieMod
 {
@@ -108,6 +110,72 @@ namespace HunieMod
                 splitThisDate = false;
             }
         }
+        /*
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(DialogManager), "DialogSceneStep")]
+        public static void DialogUpdate(DialogManager __instance, List<DialogSceneStepsProgress> ____activeDialogSceneSteps)
+        {
+            DialogSceneStepsProgress activeDialogSceneSteps = ____activeDialogSceneSteps[____activeDialogSceneSteps.Count - 1];
+            Logger.LogDebug("pre-dialog scene step! " + ____activeDialogSceneSteps.Count + " steps, " + activeDialogSceneSteps.stepIndex.ToString());
+
+            //Logger.LogDebug("dialog update: " + ____proceedToNextStep.ToString() + "," + ____activeDialogScene.ToString());
+        }
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(DialogManager), "DialogSceneStep")]
+        public static void DialogUpdate2(DialogManager __instance, List<DialogSceneStepsProgress> ____activeDialogSceneSteps)
+        {
+            DialogSceneStepsProgress activeDialogSceneSteps = ____activeDialogSceneSteps[____activeDialogSceneSteps.Count - 1];
+            Logger.LogDebug("post-dialog scene step! " + ____activeDialogSceneSteps.Count + " steps, " + activeDialogSceneSteps.stepIndex.ToString());
+
+            //Logger.LogDebug("dialog update: " + ____proceedToNextStep.ToString() + "," + ____activeDialogScene.ToString());
+        }
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(DialogManager), "PlayDialogScene")]
+        public static void DialogUpdate4(DialogManager __instance, List<DialogSceneStepsProgress> ____activeDialogSceneSteps)
+        { Logger.LogDebug("playdialogscene!"); }
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(DialogManager), "OnGirlDialogLineRead")]
+        public static void DialogUpdate5(DialogManager __instance, List<DialogSceneStepsProgress> ____activeDialogSceneSteps)
+        { Logger.LogDebug("OnGirlDialogLineRead!"); }
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(DialogManager), "OnResponseOptionSelected")]
+        public static void DialogUpdate6(DialogManager __instance, List<DialogSceneStepsProgress> ____activeDialogSceneSteps)
+        { Logger.LogDebug("OnResponseOptionSelected!"); }
+
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(DialogManager), "Update")]
+        public static void DialogUpdate3(DialogManager __instance, DialogSceneDefinition ____activeDialogScene, List<DialogSceneStepsProgress> ____activeDialogSceneSteps,
+            Sequence ____dialogSceneSequence, Timer ____waitTimer)
+        {
+            return;
+            string thelog = "active scene: ";
+            if (____activeDialogScene != null)
+            {
+                thelog += ____activeDialogScene.ToString() + " with steps " + ____activeDialogScene.steps.Count.ToString();
+            }
+            thelog += ", active scene steps count: ";
+            if (____activeDialogSceneSteps != null)
+            {
+                thelog += ____activeDialogSceneSteps.Count;
+            }
+            thelog += ", sequence elapsed: ";
+            if (____dialogSceneSequence != null)
+            {
+                thelog += ____dialogSceneSequence.elapsed.ToString();
+            }
+            thelog += ", waittimer: ";
+            if (____waitTimer != null)
+            {
+                thelog += ____waitTimer.duration.ToString();
+            }
+            Logger.LogDebug(thelog);
+            //DialogSceneStepsProgress activeDialogSceneSteps = ____activeDialogSceneSteps[____activeDialogSceneSteps.Count - 1];
+            //Logger.LogDebug("post-dialog scene step! " + ____activeDialogSceneSteps.Count + " steps, " + activeDialogSceneSteps.stepIndex.ToString());
+
+            //Logger.LogDebug("dialog update: " + ____proceedToNextStep.ToString() + "," + ____activeDialogScene.ToString());
+        }
+        */
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LoadScreen), "OnStartGameMale")]
