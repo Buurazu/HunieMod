@@ -26,18 +26,40 @@ namespace HunieMod
         /// <returns><c>True</c> when the session was ended, <c>false</c> when ending the session was blocked due to the game's current state.</returns>
         public static bool EndGameSession(bool saveGame = true, bool revertDates = true, bool triggerValediction = true)
         {
-            
+
             /*if (!GM.System.Player.tutorialComplete || GetAvailableGirls(availableOnly: false, excludeCurrentGirl: false).Count == 0)
             {
                 ShowNotification(CellNotificationType.MESSAGE, "Cannot leave the tutorial");
                 //return false;
             }*/
-
+            
             //base HunieMod could just use Input.GetMouseButtonDown(0) I think
             if (Input.GetMouseButtonDown(0) || InputPatches.mouseDown)
             {
                 ShowNotification(CellNotificationType.MESSAGE, "Cannot leave with the mouse button clicked");
                 return false;
+            }
+
+            //tutorial-only checks
+            if (!GM.System.Player.tutorialComplete)
+            {
+                object girlSpeaking = AccessTools.Field(typeof(Girl), "_currentDialogLine").GetValue(GameManager.Stage.girl);
+                UIWindow windowOpen = GameManager.Stage.uiWindows.GetActiveWindow();
+                if (girlSpeaking != null)
+                {
+                    ShowNotification(CellNotificationType.MESSAGE, "Can only leave when Kyu isn't speaking");
+                    return false;
+                }
+                if (windowOpen != null)
+                {
+                    ShowNotification(CellNotificationType.MESSAGE, "Cannot leave when making a choice");
+                    return false;
+                }
+                if (GameManager.System.Dialog.GetActiveDialogSceneStep().type == DialogSceneStepType.WAIT_FOR_CELLPHONE_CLOSE)
+                {
+                    ShowNotification(CellNotificationType.MESSAGE, "Cannot leave when waiting for HunieBee");
+                    return false;
+                }
             }
 
             if (GM.System == null || GM.System.GameState == GameState.TITLE || GM.System.GameState == GameState.LOADING || !GM.System.Location.IsLocationSettled()
@@ -149,7 +171,7 @@ namespace HunieMod
             AccessTools.Field(typeof(DialogManager), "_activeDialogScene").SetValue(GM.System.Dialog, null);
             GM.Stage.girl.ClearDialog();
             GM.Stage.altGirl.ClearDialog();
-            //these lines fix all the issues i accidentally let in with tutorial return
+            //these lines hopefully fix all the issues i accidentally let in with tutorial return
             AccessTools.Field(typeof(Girl), "DialogLineBeginEvent").SetValue(GM.Stage.girl, null, BindingFlags.Public, null, null);
             AccessTools.Field(typeof(Girl), "DialogLineReadEvent").SetValue(GM.Stage.girl, null, BindingFlags.Public, null, null);
             AccessTools.Field(typeof(Girl), "DialogLineBeginEvent").SetValue(GM.Stage.altGirl, null, BindingFlags.Public, null, null);

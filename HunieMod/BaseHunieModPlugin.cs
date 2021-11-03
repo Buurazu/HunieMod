@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "2.0";
+        public const string PluginVersion = "2.2";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -37,6 +37,7 @@ namespace HunieMod
         public static ConfigEntry<int> SplitRules { get; private set; }
         public static ConfigEntry<Boolean> VsyncEnabled { get; private set; }
         public static ConfigEntry<Boolean> CapAt144 { get; private set; }
+        public static ConfigEntry<Boolean> V1Drain { get; private set; }
         public static ConfigEntry<Boolean> CustomCGs { get; private set; }
 
         //hasReturned is used to display "This is for practice purposes" after a return to main menu, until you start a new file
@@ -81,7 +82,7 @@ namespace HunieMod
                 "Enable or disable controller axises being treated as a click");
             MouseKeys = Config.Bind(
                 "Settings", nameof(MouseKeys),
-                "W, A, S, D, Q, E, UpArrow, DownArrow, LeftArrow, RightArrow",
+                "W, A, S, D, Q, E",
                 "The keys that will be treated as a click (set to None for no keyboard clicks)");
             ControllerKeys = Config.Bind(
                 "Settings", nameof(ControllerKeys),
@@ -106,7 +107,13 @@ namespace HunieMod
                 "Settings", nameof(CapAt144),
                 true,
                 "Cap the game at 144 FPS. If false, it will cap at 60 FPS instead. 144 FPS could help mash speed, but the higher framerate could mean bonus round affection drains faster (especially on Hard)");
-            
+
+            V1Drain = Config.Bind(
+                "Settings", nameof(V1Drain),
+                false,
+                "Use Version 1.0's Bonus Round Drain Delay mechanics (base delays on Easy/Normal/Hard are 60/50/40ms instead of 65/50/35, but get lower the more girls you've completed; this is really only beneficial for Get Laid Hard at 144fps, but is included here so there's no need to download Version 1.0) (Only works on Jan. 23 version)");
+
+
             InGameTimer = Config.Bind(
                 "Settings", nameof(InGameTimer),
                 true,

@@ -176,6 +176,85 @@ namespace HunieMod
             //Logger.LogDebug("dialog update: " + ____proceedToNextStep.ToString() + "," + ____activeDialogScene.ToString());
         }
         */
+        /*
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(DialogManager), "Update")]
+        public static void DialogUpdate2(DialogManager __instance, DialogSceneDefinition ____activeDialogScene, List<DialogSceneStepsProgress> ____activeDialogSceneSteps,
+            Sequence ____dialogSceneSequence, Timer ____waitTimer)
+        {
+            TalkWindow test = GameManager.Stage.uiWindows.GetActiveWindow() as TalkWindow;
+
+            //object test2 = AccessTools.Field(typeof(Girl), "DialogLineReadEvent").GetValue(GameManager.Stage.girl);
+            object test2 = AccessTools.Field(typeof(Girl), "_currentDialogLine").GetValue(GameManager.Stage.girl);
+            test2 = AccessTools.Field(typeof(UITop), "CellPhoneClosedEvent").GetValue(GameManager.Stage.uiTop);
+            test2 = AccessTools.Field(typeof(PuzzleGame), "PuzzleGameReadyEvent").GetValue(GameManager.System.Puzzle.Game);
+            //
+            if (test2 != null)
+            {
+                Logger.LogDebug(test2.ToString());
+            }
+            else
+            {
+                Logger.LogDebug("null");
+            }
+            if (test != null)
+            {
+                Logger.LogDebug(test.ToString());
+            }
+            else Logger.LogDebug("we are in update withi no active window");
+            //DialogSceneStepsProgress activeDialogSceneSteps = ____activeDialogSceneSteps[____activeDialogSceneSteps.Count - 1];
+            //Logger.LogDebug("post-dialog scene step! " + ____activeDialogSceneSteps.Count + " steps, " + activeDialogSceneSteps.stepIndex.ToString());
+
+            //Logger.LogDebug("dialog update: " + ____proceedToNextStep.ToString() + "," + ____activeDialogScene.ToString());
+        }
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(DialogManager), "OnResponseOptionSelected")]
+        public static void DialogUpdate3(DialogManager __instance, DialogSceneDefinition ____activeDialogScene, List<DialogSceneStepsProgress> ____activeDialogSceneSteps,
+            Sequence ____dialogSceneSequence, Timer ____waitTimer)
+        {
+            
+            Logger.LogDebug("we are in onresponseoptionselected");
+            //DialogSceneStepsProgress activeDialogSceneSteps = ____activeDialogSceneSteps[____activeDialogSceneSteps.Count - 1];
+            //Logger.LogDebug("post-dialog scene step! " + ____activeDialogSceneSteps.Count + " steps, " + activeDialogSceneSteps.stepIndex.ToString());
+
+            //Logger.LogDebug("dialog update: " + ____proceedToNextStep.ToString() + "," + ____activeDialogScene.ToString());
+        }
+        
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
+        public static void TestingDrain(PuzzleGame __instance, bool ____isBonusRound, float ____bonusRoundDrainTimestamp, float ____bonusRoundDrainDelay, int ____currentAffection)
+        {
+            //Logger.LogDebug("drain delay is: " + ____bonusRoundDrainDelay.ToString());
+            float diff = GameManager.System.Lifetime(true) - ____bonusRoundDrainTimestamp;
+            //Logger.LogDebug(diff.ToString());
+            //return;
+            if (____isBonusRound && GameManager.System.Lifetime(true) - ____bonusRoundDrainTimestamp >= ____bonusRoundDrainDelay &&
+                __instance.puzzleGameState != PuzzleGameState.FINISHED && __instance.puzzleGameState != PuzzleGameState.COMPLETE)
+            {
+                Logger.LogDebug(diff.ToString() + " , " + ____currentAffection.ToString());
+            }
+        }
+        */
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PuzzleGame), "Begin")]
+        public static void Version1Drain(PuzzleGame __instance, ref float ____bonusRoundDrainDelay)
+        {
+            int version = BaseHunieModPlugin.GameVersion(); //0 = jan23, 1 = valentines
+            if (version == 1 || BaseHunieModPlugin.V1Drain.Value == false) return;
+
+            ____bonusRoundDrainDelay = 0.05f - 0.0012f * (float)GameManager.System.Player.GetTotalMaxRelationships();
+            if (GameManager.System.Player.settingsDifficulty == SettingsDifficulty.EASY)
+            {
+                ____bonusRoundDrainDelay += 0.01f;
+            }
+            else if (GameManager.System.Player.settingsDifficulty == SettingsDifficulty.HARD)
+            {
+
+                ____bonusRoundDrainDelay -= 0.01f;
+
+            }
+        }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LoadScreen), "OnStartGameMale")]
@@ -222,6 +301,46 @@ namespace HunieMod
         [HarmonyPatch(typeof(LoadScreen), "Init")]
         public static void UpdateButton(LoadScreen __instance, ref SpriteObject ____creditsButton)
         {
+            //add mod version and settings info to the corner (or just edit the text if on Valentine's)
+            int version = BaseHunieModPlugin.GameVersion(); //0 = jan23, 1 = valentines
+            string[] v = { "Jan. 23", "Valentines" };
+            string newText1 = "Speedrun Mod " + BaseHunieModPlugin.PluginVersion + " (" + v[version] + ")";
+            string newText2 = "";
+            if (BaseHunieModPlugin.VsyncEnabled.Value)
+                newText2 += "Vsync On (" + Screen.currentResolution.refreshRate + ")";
+            else if (BaseHunieModPlugin.CapAt144.Value)
+                newText2 += "144 FPS Lock";
+            else
+                newText2 += "60 FPS Lock";
+
+            if (BaseHunieModPlugin.V1Drain.Value && version == 0)
+                newText2 += ", V1.0 Drain";
+
+            if (version == 0)
+            {
+                //create our own label in the bottom-left
+                LabelObject labelObject = UnityEngine.Object.Instantiate(__instance.saveFiles[0].dataLocationLabel) as LabelObject;
+                labelObject.active = true;
+                labelObject.label.color = new Color(142 / 255f, 123 / 255f, 152 / 255f, 0f);
+                labelObject.label.scale = new Vector3(0.67f, 0.67f);
+                labelObject.label.font.lineHeight = 27;
+                labelObject.label.maxChars = 999;
+
+                labelObject.SetText(newText1 + "\n" + newText2);
+                __instance.buttonContainer.AddChild(labelObject);
+                labelObject.ShiftSelfToTop();
+                labelObject.localX = -503f;
+                labelObject.localY = -14f;
+            }
+            else
+            {
+                LabelObject ____noteVersion = (__instance.GetChildByName("LoadScreenNotes").GetChildByName("LoadScreenNoteVersion") as LabelObject);
+                LabelObject ____noteCensor = (__instance.GetChildByName("LoadScreenNotes").GetChildByName("LoadScreenNoteCensor") as LabelObject);
+                ____noteVersion.SetText(newText1);
+                ____noteCensor.SetText(newText2);
+            }
+
+            //replace Credits button with Update button
             if (!BaseHunieModPlugin.newVersionAvailable) return;
             SpriteObject spr = GameUtil.ImageFileToSprite("update.png", "updatesprite");
 
