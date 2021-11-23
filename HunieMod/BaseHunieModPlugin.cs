@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "2.2";
+        public const string PluginVersion = "2.3";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -29,10 +29,9 @@ namespace HunieMod
         public static ConfigEntry<KeyboardShortcut> ResetKey { get; private set; }
         public static ConfigEntry<KeyboardShortcut> ResetKey2 { get; private set; }
         public static ConfigEntry<Boolean> CensorshipEnabled { get; private set; }
-        public static ConfigEntry<Boolean> CheatHotkeyEnabled { get; private set; }
+        public static ConfigEntry<KeyboardShortcut> CheatHotkey { get; private set; }
         public static ConfigEntry<Boolean> MouseWheelEnabled { get; private set; }
         public static ConfigEntry<Boolean> AxisesEnabled { get; private set; }
-        public static ConfigEntry<Boolean> InputModsEnabled { get; private set; }
         public static ConfigEntry<Boolean> InGameTimer { get; private set; }
         public static ConfigEntry<int> SplitRules { get; private set; }
         public static ConfigEntry<Boolean> VsyncEnabled { get; private set; }
@@ -59,19 +58,15 @@ namespace HunieMod
 
         private void Awake()
         {
-            ResetKey = Config.Bind(
-                "Settings", nameof(ResetKey),
-                new KeyboardShortcut(KeyCode.F4),
-                "The hotkey to use for going back to the title (set to None to disable)");
-            ResetKey2 = Config.Bind(
-                "Settings", nameof(ResetKey2),
-                new KeyboardShortcut(KeyCode.Escape),
-                "Alternate hotkey to use for going back to the title (set to None to disable)");
-
-            InputModsEnabled = Config.Bind(
-                "Settings", nameof(InputModsEnabled),
+            VsyncEnabled = Config.Bind(
+                "Settings", nameof(VsyncEnabled),
                 true,
-                "Enable or disable all fake clicks (overrides the below settings)");
+                "Enable or disable Vsync. The FPS cap below will only take effect with it disabled");
+            CapAt144 = Config.Bind(
+                "Settings", nameof(CapAt144),
+                true,
+                "Cap the game at 144 FPS. If false, it will cap at 60 FPS instead. 144 FPS could help mash speed, but the higher framerate could mean bonus round affection drains faster (especially on Hard)");
+
             MouseWheelEnabled = Config.Bind(
                 "Settings", nameof(MouseWheelEnabled),
                 true,
@@ -89,30 +84,27 @@ namespace HunieMod
                 "JoystickButton0, JoystickButton1, JoystickButton2, JoystickButton3",
                 "The controller buttons that will be treated as a click (set to None for no controller clicks)");
 
+            ResetKey = Config.Bind(
+                "Settings", nameof(ResetKey),
+                new KeyboardShortcut(KeyCode.F4),
+                "The hotkey to use for going back to the title (set to None to disable)");
+            ResetKey2 = Config.Bind(
+                "Settings", nameof(ResetKey2),
+                new KeyboardShortcut(KeyCode.Escape),
+                "Alternate hotkey to use for going back to the title (set to None to disable)");
+            CheatHotkey = Config.Bind(
+                "Settings", nameof(CheatHotkey),
+                new KeyboardShortcut(KeyCode.C),
+                "The hotkey to use for activating Cheat Mode on the title screen (set to None to disable)");
+
             CensorshipEnabled = Config.Bind(
                 "Settings", nameof(CensorshipEnabled),
                 true,
                 "Enable or disable the censorship mods");
-
             CustomCGs = Config.Bind(
                 "Settings", nameof(CustomCGs),
                 false,
                 "Enable or disable loading custom CGs from the exe folder (i.e. Aiko.png) (requires the censorship enabled) (loading files could lag the game)");
-
-            VsyncEnabled = Config.Bind(
-                "Settings", nameof(VsyncEnabled),
-                true,
-                "Enable or disable Vsync. The FPS cap below will only take effect with it disabled");
-            CapAt144 = Config.Bind(
-                "Settings", nameof(CapAt144),
-                true,
-                "Cap the game at 144 FPS. If false, it will cap at 60 FPS instead. 144 FPS could help mash speed, but the higher framerate could mean bonus round affection drains faster (especially on Hard)");
-
-            V1Drain = Config.Bind(
-                "Settings", nameof(V1Drain),
-                false,
-                "Use Version 1.0's Bonus Round Drain Delay mechanics (base delays on Easy/Normal/Hard are 60/50/40ms instead of 65/50/35, but get lower the more girls you've completed; this is really only beneficial for Get Laid Hard at 144fps, but is included here so there's no need to download Version 1.0) (Only works on Jan. 23 version)");
-
 
             InGameTimer = Config.Bind(
                 "Settings", nameof(InGameTimer),
@@ -123,10 +115,10 @@ namespace HunieMod
                 0,
                 "0 = Split on every date/bonus, 1 = Split only after dates, 2 = Split only after bonus rounds\n(You may want to delete your run comparison/golds after changing this. Get Laids are excluded from this option)");
 
-            CheatHotkeyEnabled = Config.Bind(
-                "Settings", nameof(CheatHotkeyEnabled),
-                true,
-                "Enable or disable the cheat hotkey (C on main menu)");
+            V1Drain = Config.Bind(
+                "Settings", nameof(V1Drain),
+                false,
+                "Use Version 1.0's Bonus Round Drain Delay mechanics (base delays on Easy/Normal/Hard are 60/50/40ms instead of 65/50/35, but get lower the more girls you've completed; this is really only beneficial for Get Laid Hard at 144fps, but is included here so there's no need to download Version 1.0) (Only works on Jan. 23 version)");
 
         }
 
@@ -171,7 +163,7 @@ namespace HunieMod
             }
 
             if (CensorshipEnabled.Value) Harmony.CreateAndPatchAll(typeof(CensorshipPatches), null);
-            if (InputModsEnabled.Value) Harmony.CreateAndPatchAll(typeof(InputPatches), null);
+            Harmony.CreateAndPatchAll(typeof(InputPatches), null);
             if (InGameTimer.Value) Harmony.CreateAndPatchAll(typeof(RunTimerPatches), null);
 
             string both = MouseKeys.Value + "," + ControllerKeys.Value;
@@ -326,7 +318,7 @@ namespace HunieMod
                     RunTimerPatches.UpdateFiles();
                 }
 
-                if (CheatHotkeyEnabled.Value && cheatsEnabled == false && Input.GetKeyDown(KeyCode.C))
+                if (cheatsEnabled == false && CheatHotkey.Value.IsDown())
                 {
                     GameManager.System.Audio.Play(AudioCategory.SOUND, GameManager.Stage.uiPuzzle.puzzleGrid.failureSound, false, 2f, false);
                     GameManager.System.Audio.Play(AudioCategory.SOUND, GameManager.Stage.uiPuzzle.puzzleGrid.badMoveSound, false, 2f, false);
@@ -475,7 +467,7 @@ namespace HunieMod
                         6, 7, 1, 0, 0, 6, 0, 0,
                         1, 4, 6, 0, 0, 6, 0, 0
                     };
-
+                        bool applied = false;
                         for (int m = 6; m >= 0; m--)
                         {
                             for (int n = 7; n >= 0; n--)
@@ -483,8 +475,14 @@ namespace HunieMod
                                 PuzzleGridPosition blank = new PuzzleGridPosition(m, n, ui);
                                 PuzzleGridPosition pgp = theBoard[blank.GetKey(0, 0)];
                                 PuzzleToken pt = (PuzzleToken)AccessTools.Field(typeof(PuzzleGridPosition), "_token").GetValue(pgp);
-                                pt.definition = tokens[badboard[(m * 8) + n]];
+                                //pt.definition = tokens[badboard[(m * 8) + n]];
+                                pt.definition = tokens[(n+m)%2+1];
                                 pt.level = 1;
+                                if ((n + m) % 2 + 1 == 1 && !applied)
+                                {
+                                    pt.level = 2;
+                                    applied = true;
+                                }
                                 pt.sprite.SetSprite(GameManager.Stage.uiPuzzle.puzzleGrid.puzzleTokenSpriteCollection, pt.definition.levels[pt.level - 1].GetSpriteName(false, false));
                                 pgp.SetToken(pt);
                             }

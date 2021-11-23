@@ -86,8 +86,6 @@ namespace HunieMod
         public static bool FakeMouseClicks(CursorManager __instance, ref List<CursorAttachedObject> ____attachedObjects,
             ref DisplayObject ____mouseTarget, ref DisplayObject ____mouseDownTarget, ref Vector3 ____mouseDelta, ref Vector3 ____previousMousePosition)
         {
-            //if (!stopwatch.IsRunning) stopwatch.Start();
-            //Logger.LogMessage(stopwatch.ElapsedMilliseconds);
             Vector3 mousePosition = __instance.GetMousePosition();
             for (int i = 0; i < ____attachedObjects.Count; i++)
             {

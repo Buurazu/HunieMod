@@ -323,14 +323,14 @@ namespace HunieMod
                 labelObject.active = true;
                 labelObject.label.color = new Color(142 / 255f, 123 / 255f, 152 / 255f, 0f);
                 labelObject.label.scale = new Vector3(0.67f, 0.67f);
-                labelObject.label.font.lineHeight = 27;
+                //labelObject.label.font.lineHeight = 27;
                 labelObject.label.maxChars = 999;
 
                 labelObject.SetText(newText1 + "\n" + newText2);
                 __instance.buttonContainer.AddChild(labelObject);
                 labelObject.ShiftSelfToTop();
                 labelObject.localX = -503f;
-                labelObject.localY = -14f;
+                labelObject.localY = -10f;
             }
             else
             {

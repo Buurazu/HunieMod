@@ -45,6 +45,7 @@ namespace HunieMod
             {
                 object girlSpeaking = AccessTools.Field(typeof(Girl), "_currentDialogLine").GetValue(GameManager.Stage.girl);
                 UIWindow windowOpen = GameManager.Stage.uiWindows.GetActiveWindow();
+                object activeDialogScene = AccessTools.Field(typeof(DialogManager), "_activeDialogScene").GetValue(GameManager.System.Dialog);
                 if (girlSpeaking != null)
                 {
                     ShowNotification(CellNotificationType.MESSAGE, "Can only leave when Kyu isn't speaking");
@@ -55,10 +56,12 @@ namespace HunieMod
                     ShowNotification(CellNotificationType.MESSAGE, "Cannot leave when making a choice");
                     return false;
                 }
-                if (GameManager.System.Dialog.GetActiveDialogSceneStep().type == DialogSceneStepType.WAIT_FOR_CELLPHONE_CLOSE)
-                {
-                    ShowNotification(CellNotificationType.MESSAGE, "Cannot leave when waiting for HunieBee");
-                    return false;
+                if (activeDialogScene != null) {
+                    if (GameManager.System.Dialog.GetActiveDialogSceneStep().type == DialogSceneStepType.WAIT_FOR_CELLPHONE_CLOSE)
+                    {
+                        ShowNotification(CellNotificationType.MESSAGE, "Cannot leave when waiting for HunieBee");
+                        return false;
+                    }
                 }
             }
 
