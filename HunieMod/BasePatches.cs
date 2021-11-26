@@ -22,6 +22,9 @@ namespace HunieMod
 
         public static SpriteObject updateSprite;
 
+        public static LabelObject currentCategory;
+        public static LabelObject currentDifficulty;
+
         public static BepInEx.Logging.ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("BasePatches");
 
         public static bool splitThisDate = false;
@@ -281,6 +284,46 @@ namespace HunieMod
             titleScreenInteractive = false;
         }
 
+        private static void DecreaseDiff(ButtonObject buttonObject)
+        {
+            BaseHunieModPlugin.lastChosenDifficulty--;
+            if (BaseHunieModPlugin.lastChosenDifficulty < 0) BaseHunieModPlugin.lastChosenDifficulty = RunTimer.difficulties.Length - 1;
+            RunTimerPatches.UpdateFiles();
+        }
+        private static void IncreaseDiff(ButtonObject buttonObject)
+        {
+            BaseHunieModPlugin.lastChosenDifficulty++;
+            if (BaseHunieModPlugin.lastChosenDifficulty >= RunTimer.difficulties.Length) BaseHunieModPlugin.lastChosenDifficulty = 0;
+            RunTimerPatches.UpdateFiles();
+        }
+        private static void DecreaseCat(ButtonObject buttonObject)
+        {
+            BaseHunieModPlugin.lastChosenCategory--;
+            if (BaseHunieModPlugin.lastChosenCategory < 0) BaseHunieModPlugin.lastChosenCategory = RunTimer.categories.Length - 1;
+            RunTimerPatches.UpdateFiles();
+        }
+        private static void IncreaseCat(ButtonObject buttonObject)
+        {
+            BaseHunieModPlugin.lastChosenCategory++;
+            if (BaseHunieModPlugin.lastChosenCategory >= RunTimer.categories.Length) BaseHunieModPlugin.lastChosenCategory = 0;
+            RunTimerPatches.UpdateFiles();
+        }
+        private static void InitializeOurThing(SpriteObject obj, DisplayObject container, float X, float Y)
+        {
+            obj.localX = X;
+            obj.localY = Y;
+            obj.SetAlpha(0);
+            container.AddChild(obj);
+        }
+        private static void InitializeOurThing(LabelObject obj, DisplayObject container, float X, float Y)
+        {
+            obj.localX = X;
+            obj.localY = Y;
+            obj.label.color = new Color(255f, 255f, 255f, 0f);
+            obj.label.anchor = TextAnchor.MiddleCenter;
+            container.AddChild(obj);
+        }
+
         [HarmonyPrefix]
         [HarmonyPatch(typeof(LoadScreen), "OnCreditsButtonPressed")]
         public static bool UpdateTime()
@@ -299,7 +342,7 @@ namespace HunieMod
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LoadScreen), "Init")]
-        public static void UpdateButton(LoadScreen __instance, ref SpriteObject ____creditsButton)
+        public static void UpdateButton(LoadScreen __instance, ref SpriteObject ____creditsButton, ref UICellApp ____settingsCellApp)
         {
             //add mod version and settings info to the corner (or just edit the text if on Valentine's)
             int version = BaseHunieModPlugin.GameVersion(); //0 = jan23, 1 = valentines
@@ -339,6 +382,44 @@ namespace HunieMod
                 ____noteVersion.SetText(newText1);
                 ____noteCensor.SetText(newText2);
             }
+
+            //add run timer stuff
+            //if run setting is on
+            SettingsCellApp settingsApp = (SettingsCellApp)____settingsCellApp;
+            SettingsMeter meter = ((List<SettingsMeter>)AccessTools.Field(typeof(SettingsCellApp), "_settingsMeters").GetValue(settingsApp))[0];
+            SpriteObject leftArrow = UnityEngine.Object.Instantiate(
+                (SpriteObject)AccessTools.Field(typeof(SettingsMeter), "_leftArrow").GetValue(meter)) as SpriteObject;
+            SpriteObject rightArrow = UnityEngine.Object.Instantiate(
+                (SpriteObject)AccessTools.Field(typeof(SettingsMeter), "_rightArrow").GetValue(meter)) as SpriteObject;
+            SpriteObject leftArrow2 = UnityEngine.Object.Instantiate(
+                (SpriteObject)AccessTools.Field(typeof(SettingsMeter), "_leftArrow").GetValue(meter)) as SpriteObject;
+            SpriteObject rightArrow2 = UnityEngine.Object.Instantiate(
+                (SpriteObject)AccessTools.Field(typeof(SettingsMeter), "_rightArrow").GetValue(meter)) as SpriteObject;
+            currentDifficulty = UnityEngine.Object.Instantiate(__instance.saveFiles[0].dataLocationLabel) as LabelObject;
+            currentCategory = UnityEngine.Object.Instantiate(__instance.saveFiles[0].dataLocationLabel) as LabelObject;
+            int ypos = 140; int yoffset = 22;
+            int xpos = 600; int offset = 240; int diff = 120;
+            //centered vertically, large difference horizontally
+            /*InitializeOurThing(leftArrow, __instance.buttonContainer, xpos - offset - diff, ypos);
+            InitializeOurThing(currentCategory, __instance.buttonContainer, xpos - offset - 5, ypos);
+            InitializeOurThing(rightArrow, __instance.buttonContainer, xpos - offset + diff, ypos);
+            InitializeOurThing(leftArrow2, __instance.buttonContainer, xpos + offset - diff, ypos);
+            InitializeOurThing(currentDifficulty, __instance.buttonContainer, xpos + offset - 5, ypos);
+            InitializeOurThing(rightArrow2, __instance.buttonContainer, xpos + offset + diff, ypos);*/
+            //centered horizontally, stacked on top of each other
+            InitializeOurThing(leftArrow, __instance.buttonContainer, xpos - diff, ypos + yoffset);
+            InitializeOurThing(currentCategory, __instance.buttonContainer, xpos - 5, ypos + yoffset);
+            InitializeOurThing(rightArrow, __instance.buttonContainer, xpos + diff, ypos + yoffset);
+            InitializeOurThing(leftArrow2, __instance.buttonContainer, xpos - diff, ypos - yoffset);
+            InitializeOurThing(currentDifficulty, __instance.buttonContainer, xpos - 5, ypos - yoffset);
+            InitializeOurThing(rightArrow2, __instance.buttonContainer, xpos + diff, ypos - yoffset);
+            currentDifficulty.SetText(RunTimer.difficulties[BaseHunieModPlugin.lastChosenDifficulty]);
+            currentCategory.SetText(RunTimer.categories[BaseHunieModPlugin.lastChosenCategory]);
+            leftArrow.button.ButtonPressedEvent += DecreaseCat;
+            rightArrow.button.ButtonPressedEvent += IncreaseCat;
+            leftArrow2.button.ButtonPressedEvent += DecreaseDiff;
+            rightArrow2.button.ButtonPressedEvent += IncreaseDiff;
+
 
             //replace Credits button with Update button
             if (!BaseHunieModPlugin.newVersionAvailable) return;

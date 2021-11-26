@@ -266,7 +266,9 @@ namespace HunieMod
             Logger.LogMessage("Cellphone unlocked: " + GameManager.System.Player.cellphoneUnlocked);
             Logger.LogMessage("Interactive: " + GameManager.Stage.uiTop.buttonHuniebee.interactive);
             Logger.LogMessage("Is enabled: " + GameManager.Stage.uiTop.buttonHuniebee.button.IsEnabled());
-            Logger.LogMessage("_disabled: " + cellButtonDisabled);*/
+            Logger.LogMessage("_disabled: " + cellButtonDisabled);
+            Logger.LogMessage("alpha 1: " + GameManager.Stage.uiTop.buttonHuniebee.spriteAlpha);
+            Logger.LogMessage("alpha 2: " + GameManager.Stage.uiTop.buttonHuniebeeOverlay.spriteAlpha);*/
             //InputPatches.mouseWasDown = false; InputPatches.mouseWasClicked = false;
             RunTimerPatches.Update();
 

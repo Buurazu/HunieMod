@@ -51,7 +51,7 @@ namespace HunieMod
                 savePBDelay.Reset();
                 run.save();
             }
-
+            //BasePatches.Logger.LogDebug(run.goal);
             //there's no point to reverting our change early, because the passion level gets drained to zero by then anyway
             /*
             if (revertDiffDelay.IsRunning && revertDiffDelay.ElapsedMilliseconds > 6000)
@@ -127,6 +127,8 @@ namespace HunieMod
             TitleScreen ts = (TitleScreen)AccessTools.Field(typeof(UITitle), "_titleScreen").GetValue(GameManager.Stage.uiTitle);
             LoadScreen ls = (LoadScreen)AccessTools.Field(typeof(TitleScreen), "_loadScreen").GetValue(ts);
             foreach (LoadScreenSaveFile l in ls.saveFiles) l.Refresh();
+            BasePatches.currentCategory.SetText(RunTimer.categories[BaseHunieModPlugin.lastChosenCategory]);
+            BasePatches.currentDifficulty.SetText(RunTimer.difficulties[BaseHunieModPlugin.lastChosenDifficulty]);
         }
 
         //always start a new timer, but only make it a category/difficulty when not cheating
@@ -148,7 +150,7 @@ namespace HunieMod
                 BaseHunieModPlugin.run = new RunTimer();
             }
         }
-
+        
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LoadScreenSaveFile), "Refresh")]
         public static void ChangeFile1Text(LoadScreenSaveFile __instance, ref int ____saveFileIndex, ref SaveFile ____saveFile)
@@ -166,7 +168,7 @@ namespace HunieMod
             __instance.dataGirlLabel.SetText(RunTimer.GetGolds(BaseHunieModPlugin.lastChosenCategory, BaseHunieModPlugin.lastChosenDifficulty));
 
         }
-
+        
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LoadScreen), "OnStartGameMale")]
         public static void MaleStart(ref int saveFileIndex)

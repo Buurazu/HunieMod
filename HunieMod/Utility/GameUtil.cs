@@ -293,6 +293,11 @@ namespace HunieMod
                         BaseHunieModPlugin.hasReturned = false;
                         saveFile.settingsGender = (int)gender;
                     }
+                    else if (saveFile.cellphoneUnlocked)
+                    {
+                        GameManager.Stage.uiTop.buttonHuniebee.SetAlpha(1f, 0f);
+                        GameManager.Stage.uiTop.buttonHuniebeeOverlay.SetAlpha(0.64f, 0f);
+                    }
 
                     // Set the active save file
                     AccessTools.Field(typeof(GM), "_saveFile").SetValue(GM.System, saveFile);
