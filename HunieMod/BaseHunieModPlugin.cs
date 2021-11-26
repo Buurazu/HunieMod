@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "2.3";
+        public const string PluginVersion = "2.4";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 

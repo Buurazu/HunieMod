@@ -124,11 +124,13 @@ namespace HunieMod
 
         public static void UpdateFiles()
         {
-            TitleScreen ts = (TitleScreen)AccessTools.Field(typeof(UITitle), "_titleScreen").GetValue(GameManager.Stage.uiTitle);
-            LoadScreen ls = (LoadScreen)AccessTools.Field(typeof(TitleScreen), "_loadScreen").GetValue(ts);
-            foreach (LoadScreenSaveFile l in ls.saveFiles) l.Refresh();
+            //TitleScreen ts = (TitleScreen)AccessTools.Field(typeof(UITitle), "_titleScreen").GetValue(GameManager.Stage.uiTitle);
+            //LoadScreen ls = (LoadScreen)AccessTools.Field(typeof(TitleScreen), "_loadScreen").GetValue(ts);
+            //foreach (LoadScreenSaveFile l in ls.saveFiles) l.Refresh();
             BasePatches.currentCategory.SetText(RunTimer.categories[BaseHunieModPlugin.lastChosenCategory]);
             BasePatches.currentDifficulty.SetText(RunTimer.difficulties[BaseHunieModPlugin.lastChosenDifficulty]);
+            BasePatches.PBtext.SetText("PB: " + RunTimer.GetPB(BaseHunieModPlugin.lastChosenCategory, BaseHunieModPlugin.lastChosenDifficulty));
+            BasePatches.SOBtext.SetText("SoB: " + RunTimer.GetGolds(BaseHunieModPlugin.lastChosenCategory, BaseHunieModPlugin.lastChosenDifficulty));
         }
 
         //always start a new timer, but only make it a category/difficulty when not cheating
@@ -157,17 +159,19 @@ namespace HunieMod
         {
             if (____saveFile.started || !BaseHunieModPlugin.InGameTimer.Value) return;
 
-            __instance.noDataContainer.gameObj.SetActive(false);
+            __instance.titleLabel.SetText("Start New Run");
+
+            /*__instance.noDataContainer.gameObj.SetActive(false);
             __instance.dataContainer.gameObj.SetActive(true);
 
-            __instance.titleLabel.SetText("Start New Run");
             __instance.dataDateLabel.SetText(RunTimer.categories[BaseHunieModPlugin.lastChosenCategory]);
             __instance.dataLocationLabel.SetText(RunTimer.difficulties[BaseHunieModPlugin.lastChosenDifficulty]);
 
             __instance.dataTimeLabel.SetText(RunTimer.GetPB(BaseHunieModPlugin.lastChosenCategory, BaseHunieModPlugin.lastChosenDifficulty));
             __instance.dataGirlLabel.SetText(RunTimer.GetGolds(BaseHunieModPlugin.lastChosenCategory, BaseHunieModPlugin.lastChosenDifficulty));
-
+            */
         }
+        
         
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LoadScreen), "OnStartGameMale")]

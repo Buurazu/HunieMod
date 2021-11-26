@@ -29,7 +29,9 @@ namespace HunieMod
         public long runTimer;
         public int runFile;
         public string category;
+        public int chosenDifficulty;
         public int goal;
+        public bool finishedRun;
         public List<TimeSpan> splits = new List<TimeSpan>();
         public List<bool> isBonus = new List<bool>();
         public List<TimeSpan> comparisonDates = new List<TimeSpan>();
@@ -188,7 +190,9 @@ namespace HunieMod
             runFile = -1;
             category = "";
             goal = -1;
+            chosenDifficulty = -1;
             runTimer = DateTime.UtcNow.Ticks;
+            finishedRun = false;
         }
         public RunTimer(int newFile, int cat, int difficulty) : this()
         {
@@ -207,6 +211,7 @@ namespace HunieMod
             {
                 Logger.LogMessage("invalid category, so no category loaded");
             }
+            chosenDifficulty = difficulty;
         }
 
         public void refresh()
@@ -268,7 +273,8 @@ namespace HunieMod
                 if (b) numBonuses++; else numDates++;
             }
 
-            if (category != "")
+            //only show split difference if we're on a category, and our difficulty matches (or we're on tutorial)
+            if (category != "" && (splits.Count == 1 || chosenDifficulty == (int)GameManager.System.Player.settingsDifficulty + 1))
             {
                 //create the affection meter replacement text
                 //time [+/-]
@@ -348,9 +354,9 @@ namespace HunieMod
                     else goldDates.Add(s);
                 }
             }
-            else //category == ""
+            else if (category == "" && finishedRun == false)
             {
-                //reset the timer for each split if we aren't in a category
+                //reset the timer for each split if we aren't in a category or post-run
                 runTimer = DateTime.UtcNow.Ticks;
             }
 
@@ -363,7 +369,7 @@ namespace HunieMod
         public void reset(bool saveGolds = true)
         {
             //save golds on reset of a category
-            if (category != "" && saveGolds)
+            if (category != "" && saveGolds && chosenDifficulty == (int)GameManager.System.Player.settingsDifficulty + 1)
             {
                 //save date and bonus golds separately, but without copying all the code twice lol
                 string[] targets = { "splits/data/" + category + " Dates Golds.txt", "splits/data/" + category + " Bonuses Golds.txt" };
@@ -410,7 +416,8 @@ namespace HunieMod
             }
             category = "";
             goal = -1;
-            runTimer = DateTime.UtcNow.Ticks;
+            //runTimer = DateTime.UtcNow.Ticks;
+            finishedRun = true;
         }
 
         //a run has finished; is it faster than our comparison?
@@ -418,23 +425,26 @@ namespace HunieMod
         {
             if (category != "")
             {
-                string target = "splits/data/" + category + " Dates.txt"; string target2 = "splits/data/" + category + " Bonuses.txt";
-                if (File.Exists(target) && File.Exists(target2))
+                if (chosenDifficulty == (int)GameManager.System.Player.settingsDifficulty + 1)
                 {
-                    //saved comparison is longer than our new one
-                    if (TimeSpan.Parse(GetPB(category, false)) > splits[splits.Count - 1])
+                    string target = "splits/data/" + category + " Dates.txt"; string target2 = "splits/data/" + category + " Bonuses.txt";
+                    if (File.Exists(target) && File.Exists(target2))
+                    {
+                        //saved comparison is longer than our new one
+                        if (TimeSpan.Parse(GetPB(category, false)) > splits[splits.Count - 1])
+                        {
+                            File.WriteAllLines(target, splitsToStrings(false));
+                            File.WriteAllLines(target2, splitsToStrings(true));
+                            File.WriteAllText("splits/" + category + " PB.txt", finalRunDisplay);
+                        }
+                    }
+                    //no PB file, so make one
+                    else
                     {
                         File.WriteAllLines(target, splitsToStrings(false));
                         File.WriteAllLines(target2, splitsToStrings(true));
                         File.WriteAllText("splits/" + category + " PB.txt", finalRunDisplay);
                     }
-                }
-                //no PB file, so make one
-                else
-                {
-                    File.WriteAllLines(target, splitsToStrings(false));
-                    File.WriteAllLines(target2, splitsToStrings(true));
-                    File.WriteAllText("splits/" + category + " PB.txt", finalRunDisplay);
                 }
                 //run is over, so we're no longer on a category
                 reset();
