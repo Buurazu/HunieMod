@@ -22,7 +22,6 @@ namespace HunieMod
 
         public static void Update()
         {
-            
             if (!BaseHunieModPlugin.InGameTimer.Value || BaseHunieModPlugin.run == null) return;
             RunTimer run = BaseHunieModPlugin.run;
 
@@ -68,8 +67,8 @@ namespace HunieMod
 
         public static void ChangePuzzleUIText()
         {
-            UIPuzzleStatus status = GameManager.Stage.uiPuzzle.puzzleStatus;
             RunTimer run = BaseHunieModPlugin.run;
+            UIPuzzleStatus status = GameManager.Stage.uiPuzzle.puzzleStatus;
             status.affectionLabel.SetText("^C" + RunTimer.colors[(int)run.splitColor] + "FF" + run.splitText);
 
             if (run.prevColor != RunTimer.SplitColors.WHITE)
@@ -144,8 +143,7 @@ namespace HunieMod
 
             if (!BaseHunieModPlugin.cheatsEnabled && !cont)
             {
-                int catChoice = BaseHunieModPlugin.lastChosenCategory;
-                BaseHunieModPlugin.run = new RunTimer(saveFileIndex, catChoice, BaseHunieModPlugin.lastChosenDifficulty);
+                BaseHunieModPlugin.run = new RunTimer(saveFileIndex, BaseHunieModPlugin.lastChosenCategory, BaseHunieModPlugin.lastChosenDifficulty);
             }
             else
             {
@@ -200,7 +198,7 @@ namespace HunieMod
         {
             if (settingsSwitchPanel == ____settingsPanelDifficulty && BaseHunieModPlugin.lastChosenDifficulty == 0 && BaseHunieModPlugin.run != null && BaseHunieModPlugin.run.category != "")
             {
-                BaseHunieModPlugin.run.category = RunTimer.categories[BaseHunieModPlugin.lastChosenCategory] + " " + RunTimer.difficulties[(int)GameManager.System.Player.settingsDifficulty+1];
+                BaseHunieModPlugin.run.chosenDifficulty = (int)GameManager.System.Player.settingsDifficulty + 1;
                 BaseHunieModPlugin.run.refresh();
             }
         }

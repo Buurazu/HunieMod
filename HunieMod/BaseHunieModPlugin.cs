@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "2.4";
+        public const string PluginVersion = "2.6.1";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -53,7 +53,7 @@ namespace HunieMod
 
         public static RunTimer run;
 
-        public static int lastChosenCategory = 0;
+        public static int lastChosenCategory = 6;
         public static int lastChosenDifficulty = 0;
 
         private void Awake()
@@ -143,7 +143,6 @@ namespace HunieMod
                 System.IO.Directory.CreateDirectory("splits");
                 System.IO.Directory.CreateDirectory("splits/data");
             }
-            RunTimer.ConvertOldSplits();
 
             //Check for a new update
             WebClient client = new WebClient();
@@ -262,6 +261,10 @@ namespace HunieMod
 
         private void Update() // Another Unity method
         {
+            /*if (BaseHunieModPlugin.run == null)
+                Logger.LogMessage("null");
+            else
+                Logger.LogMessage("not null");*/
             /*bool cellButtonDisabled = (bool)AccessTools.Field(typeof(UITop), "_cellButtonDisabled")?.GetValue(GameManager.Stage.uiTop);
             Logger.LogMessage("Cellphone unlocked: " + GameManager.System.Player.cellphoneUnlocked);
             Logger.LogMessage("Interactive: " + GameManager.Stage.uiTop.buttonHuniebee.interactive);
@@ -368,13 +371,13 @@ namespace HunieMod
 
                 }
                 //reset run on Ctrl+R
-                if (Input.GetKeyDown(KeyCode.R) && run != null)
+                if (Input.GetKeyDown(KeyCode.R) && run != null && run.category != "")
                 {
                     run.reset(true);
                     GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Run reset!");
                 }
                 //quit run on Ctrl+Q
-                if (Input.GetKeyDown(KeyCode.Q) && run != null)
+                if (Input.GetKeyDown(KeyCode.Q) && run != null && run.category != "")
                 {
                     run.reset(false);
                     GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Run quit!");
@@ -415,6 +418,30 @@ namespace HunieMod
                     }
                 }
 
+                if (Input.GetKeyDown(KeyCode.F3))
+                {
+                    if (GameManager.System.GameState == GameState.PUZZLE)
+                    {
+                        if (GameManager.System.Puzzle.Game.isBonusRound)
+                        {
+                            GameManager.System.Puzzle.Game.SetResourceValue(PuzzleGameResourceType.AFFECTION, 0, false);
+                            run.runTimer = DateTime.UtcNow.Ticks;
+                        }
+                        AccessTools.Field(typeof(PuzzleGame), "_goalAffection")?.SetValue(GameManager.System.Puzzle.Game, 10000);
+                        GameManager.System.Puzzle.Game.AddResourceValue(PuzzleGameResourceType.AFFECTION, 0, false);
+                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Goal set to 10,000!");
+                    }
+                }
+
+                if (Input.GetKeyDown(KeyCode.F5))
+                {
+                    foreach (GirlPlayerData girlData in GameManager.System.Player.girls)
+                    {
+                        if (girlData.metStatus < GirlMetStatus.UNKNOWN) girlData.metStatus = GirlMetStatus.UNKNOWN;
+                    }
+                    GameUtil.ShowNotification(CellNotificationType.MESSAGE, "All girls available to meet!");
+                }
+
                 if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
                 {
                     if (Input.GetKeyDown(KeyCode.M))
@@ -435,6 +462,33 @@ namespace HunieMod
                         else
                             GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Nude cheat disabled");
                         CheatPatches.RefreshGirls();
+                    }
+
+                    if (Input.GetKeyDown(KeyCode.R))
+                    {
+                        GirlPlayerData girlData = GameManager.System.Player.GetGirlData(GameManager.System.Location.currentGirl);
+                        
+
+                        if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+                        {
+                            if (girlData.relationshipLevel > 1)
+                            {
+                                int newLevel = girlData.relationshipLevel - 1;
+                                AccessTools.Field(typeof(GirlPlayerData), "_relationshipLevel")?.SetValue(girlData, newLevel);
+                                GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Relationship Leveled Down to " + girlData.relationshipLevel + "!");
+                                GameManager.Stage.uiGirl.ShowCurrentGirlStats();
+                            }
+                        }
+                        else
+                        {
+                            if (girlData.relationshipLevel != 5)
+                            {
+                                int newLevel = girlData.relationshipLevel + 1;
+                                AccessTools.Field(typeof(GirlPlayerData), "_relationshipLevel")?.SetValue(girlData, newLevel);
+                                GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Relationship Leveled Up to " + girlData.relationshipLevel + "!");
+                                GameManager.Stage.uiGirl.ShowCurrentGirlStats();
+                            }
+                        }
                     }
 
                     if (Input.GetKeyDown(KeyCode.T))

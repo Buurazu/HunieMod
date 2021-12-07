@@ -13,7 +13,8 @@ namespace HunieMod
         {
             WHITE, BLUE, RED, GOLD
         }
-        public static string[] categories = new string[] { "Get Laid", "Get Laid + Kyu", "Unlock Venus", "All Panties", "100%" };
+        public const int GETLAID = 0, GETLAIDKYU = 1, UNLOCKVENUS = 2, ALLPANTIES = 3, HUNDREDPERCENT = 4, NONE = 5, ANYCATEGORY = 6;
+        public static string[] categories = new string[] { "Get Laid", "Get Laid + Kyu", "Unlock Venus", "All Panties", "100%", "None", "Any Category" };
         public static int[] goals = new int[] { 1, 2, 69, 12, 100 };
         public static string[] difficulties = new string[] { "Any Difficulty", "Easy", "Normal", "Hard" };
 
@@ -29,9 +30,11 @@ namespace HunieMod
         public long runTimer;
         public int runFile;
         public string category;
+        public int chosenCategory;
         public int chosenDifficulty;
         public int goal;
         public bool finishedRun;
+        public bool switchedCategory;
         public List<TimeSpan> splits = new List<TimeSpan>();
         public List<bool> isBonus = new List<bool>();
         public List<TimeSpan> comparisonDates = new List<TimeSpan>();
@@ -101,61 +104,6 @@ namespace HunieMod
             return val;
         }
 
-        public static void ConvertOldSplits()
-        {
-            for (int c = 0; c < categories.Length; c++)
-            {
-                //skip Any Difficulty
-                for (int d = 1; d < difficulties.Length; d++)
-                {
-                    string category = categories[c] + " " + difficulties[d];
-                    string target = "splits/data/" + category + ".txt";
-                    if (File.Exists(target))
-                    {
-                        string target2 = "splits/data/" + category + " Dates.txt";
-                        string target3 = "splits/data/" + category + " Bonuses.txt";
-                        List<TimeSpan> dateSplits = new List<TimeSpan>();
-                        List<TimeSpan> bonusSplits = new List<TimeSpan>();
-                        string[] textFile = File.ReadAllLines(target);
-                        for (int j = 0; j < textFile.Length; j++)
-                        {
-                            TimeSpan t = TimeSpan.Parse(textFile[j]);
-                            if (j > 0) t = t - TimeSpan.Parse(textFile[j - 1]);
-                            if (t.TotalMinutes > 1)
-                            {
-                                dateSplits.Add(t);
-                            }
-                            else bonusSplits.Add(t);
-                        }
-                        File.WriteAllLines(target2, spansToStrings(dateSplits));
-                        File.WriteAllLines(target3, spansToStrings(bonusSplits));
-                        File.Delete(target);
-                    }
-                    target = "splits/data/" + category + " Golds.txt";
-                    if (File.Exists(target))
-                    {
-                        string target2 = "splits/data/" + category + " Dates Golds.txt";
-                        string target3 = "splits/data/" + category + " Bonuses Golds.txt";
-                        List<TimeSpan> dateSplits = new List<TimeSpan>();
-                        List<TimeSpan> bonusSplits = new List<TimeSpan>();
-                        string[] textFile = File.ReadAllLines(target);
-                        for (int j = 0; j < textFile.Length; j++)
-                        {
-                            TimeSpan t = TimeSpan.Parse(textFile[j]);
-                            if (t.TotalMinutes > 1)
-                            {
-                                dateSplits.Add(t);
-                            }
-                            else bonusSplits.Add(t);
-                        }
-                        File.WriteAllLines(target2, spansToStrings(dateSplits));
-                        File.WriteAllLines(target3, spansToStrings(bonusSplits));
-                        File.Delete(target);
-                    }
-                }
-            }
-        }
-
         //adds contents of the file to the given list, if provided
         //returns the sum of all found timespans
         private static TimeSpan ReadFile(string target, List<TimeSpan> list = null)
@@ -190,9 +138,12 @@ namespace HunieMod
             runFile = -1;
             category = "";
             goal = -1;
+            chosenCategory = -1;
             chosenDifficulty = -1;
             runTimer = DateTime.UtcNow.Ticks;
             finishedRun = false;
+            switchedCategory = false;
+            Logger.LogMessage("new RunTimer created");
         }
         public RunTimer(int newFile, int cat, int difficulty) : this()
         {
@@ -202,8 +153,16 @@ namespace HunieMod
             {
                 //default to Normal
                 if (difficulty == 0) difficulty = 2;
+                if (cat == RunTimer.NONE)
+                {
+                    category = ""; finishedRun = true; return;
+                }
+                else if (cat == RunTimer.ANYCATEGORY) cat = 0;
                 category = categories[cat] + " " + difficulties[difficulty];
                 goal = goals[cat];
+
+                chosenCategory = cat;
+                chosenDifficulty = difficulty;
 
                 refresh();
             }
@@ -211,14 +170,16 @@ namespace HunieMod
             {
                 Logger.LogMessage("invalid category, so no category loaded");
             }
-            chosenDifficulty = difficulty;
+            
         }
 
         public void refresh()
         {
-            Logger.LogMessage("run chosen: " + category);
-            TimeSpan tutorialTime = TimeSpan.Zero;
-            if (splits.Count == 1) tutorialTime = goldDates[0];
+            category = categories[chosenCategory] + " " + difficulties[chosenDifficulty];
+            goal = goals[chosenCategory];
+
+            Logger.LogMessage("category+difficulty chosen: " + category);
+
             comparisonDates.Clear(); comparisonBonuses.Clear();
             goldDates.Clear(); goldBonuses.Clear();
 
@@ -227,16 +188,51 @@ namespace HunieMod
             ReadFile(target, comparisonDates); ReadFile(target2, comparisonBonuses);
             
             //search for gold splits
-            //this assumes difficulty is only changed midrun when you have one split (tutorial)
             target = "splits/data/" + category + " Dates Golds.txt"; target2 = "splits/data/" + category + " Bonuses Golds.txt";
             ReadFile(target, goldDates); ReadFile(target2, goldBonuses);
 
-            if (tutorialTime != TimeSpan.Zero) {
+            /*if (tutorialTime != TimeSpan.Zero) {
                 if (goldDates.Count == 0)
                     goldDates.Add(tutorialTime);
                 else if (goldDates[0] > tutorialTime)
                     goldDates[0] = tutorialTime;
+            }*/
+            //merge our golds with the new category choice's golds
+            int dateNum = 0, bonusNum = 0;
+            
+            for (int i = 0; i < splits.Count; i++)
+            {
+                TimeSpan s = splits[i];
+                if (i > 0) s = s - splits[i-1];
+                if (isBonus[i])
+                {
+                    if (goldBonuses.Count <= bonusNum)
+                    {
+                        goldBonuses.Add(s);
+                    }
+                    else if (goldBonuses[bonusNum] > s)
+                    {
+                        goldBonuses[bonusNum] = s;
+                    }
+                    bonusNum++;
+                }
+                else
+                {
+                    if (goldDates.Count <= dateNum)
+                    {
+                        goldDates.Add(s);
+                    }
+                    else if (goldDates[dateNum] > s)
+                    {
+                        goldDates[dateNum] = s;
+                    }
+                    dateNum++;
+                }
             }
+
+            /*foreach (TimeSpan s in goldDates) BasePatches.Logger.LogMessage(s);
+            BasePatches.Logger.LogMessage("bonuses");
+            foreach (TimeSpan s in goldBonuses) BasePatches.Logger.LogMessage(s);*/
         }
 
         public TimeSpan GetTimeAt(int numDates, int numBonuses)

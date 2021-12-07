@@ -53,11 +53,42 @@ namespace HunieMod
         }
         */
 
+        //I had all girls available to meet in cheat mode, but I moved it to a hotkey because it sucked for HunieBee mouse routing
+        /*
         [HarmonyPostfix]
         [HarmonyPatch(typeof(GirlPlayerData), "ReadGirlSaveData")]
         public static void MakeUsMet(GirlPlayerData __instance)
         {
             if (__instance.metStatus < GirlMetStatus.UNKNOWN) __instance.metStatus = GirlMetStatus.UNKNOWN;
+        }
+        */
+
+        public static int lastSplitAffection = 0;
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
+        public static void BonusRoundSplits(PuzzleGame __instance, ref int ____currentAffection, ref int ____goalAffection, ref bool ____isBonusRound)
+        {
+            if (!____isBonusRound || BaseHunieModPlugin.run == null || ____goalAffection < 10000) return;
+            if (RunTimerPatches.preventAllUpdate) RunTimerPatches.ChangePuzzleUIText();
+            if (____currentAffection == 0)
+            {
+                lastSplitAffection = 0;
+                BaseHunieModPlugin.run.runTimer = DateTime.UtcNow.Ticks;
+            }
+
+            //if (____currentAffection - lastSplitAffection >= 500)
+            if (__instance.currentDisplayAffection - lastSplitAffection >= 500)
+            {
+                lastSplitAffection = ____currentAffection;
+                //lastSplitAffection += 500;
+                BaseHunieModPlugin.run.split();
+                RunTimerPatches.preventAllUpdate = true;
+            }
+            long tickDiff = DateTime.UtcNow.Ticks - BaseHunieModPlugin.run.runTimer;
+            if (tickDiff / TimeSpan.TicksPerSecond > 2)
+            {
+                RunTimerPatches.preventAllUpdate = false;
+            }
         }
 
         [HarmonyPrefix]

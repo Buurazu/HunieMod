@@ -22,6 +22,7 @@ namespace HunieMod
 
         public static SpriteObject updateSprite;
 
+        public static DisplayObject ourContainer;
         public static LabelObject currentCategory;
         public static LabelObject currentDifficulty;
         public static LabelObject PBtext;
@@ -54,12 +55,36 @@ namespace HunieMod
         [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
         public static void AutosplitHelp(PuzzleGame __instance, ref int ____goalAffection, ref bool ____victory, ref bool ____isBonusRound)
         {
+            RunTimer run = BaseHunieModPlugin.run;
             //allow splits to happen with cheats/has returned, as long as we don't auto-start with those on it's fine
             //if (BaseHunieModPlugin.cheatsEnabled || BaseHunieModPlugin.hasReturned) return;
             if (__instance.currentDisplayAffection == 0)
             {
                 startingCompletedGirls = GameManager.System.Player.GetTotalMaxRelationships();
                 startingRelationship = GameManager.System.Player.GetGirlData(GameManager.Stage.girl.definition).relationshipLevel;
+                //Logger.LogMessage(GameManager.System.Player.GetTotalMaxRelationships() + "," + GameManager.System.Player.GetTotalGirlsRelationshipLevel());
+                //auto category detection
+                if (run != null && BaseHunieModPlugin.lastChosenCategory == RunTimer.ANYCATEGORY)
+                {
+                    if (run.switchedCategory == false && GameManager.System.Player.GetTotalGirlsRelationshipLevel() == 0 && GameManager.Stage.girl.definition.firstName != "Kyu")
+                    {
+                        string girlName = GameManager.Stage.girl.definition.firstName;
+                        if (girlName == "Aiko")
+                            run.chosenCategory = RunTimer.GETLAID;
+                        else if (girlName == "Audrey")
+                            run.chosenCategory = RunTimer.GETLAIDKYU;
+                        else
+                            run.chosenCategory = RunTimer.UNLOCKVENUS;
+                        run.refresh();
+                        run.switchedCategory = true;
+                    }
+                    else if (run.chosenCategory == RunTimer.UNLOCKVENUS && GameManager.Stage.girl.definition.secretGirl)
+                    {
+                        run.chosenCategory = RunTimer.ALLPANTIES;
+                        run.refresh();
+                    }
+
+                }
             }
             if (__instance.currentDisplayAffection == ____goalAffection && (____victory || ____isBonusRound))
             {
@@ -67,12 +92,11 @@ namespace HunieMod
                 if (startingCompletedGirls < 12)
                     searchForMe = 100;
                 //if a timer is running, split
-                if (!splitThisDate && BaseHunieModPlugin.run != null)
+                if (!splitThisDate && run != null)
                 {
                     bool didSplit = false;
-                    RunTimer run = BaseHunieModPlugin.run;
                     //don't split for dates in postgame
-                    if (startingCompletedGirls < 12)
+                    if (startingCompletedGirls < 12 || run.category == "")
                     {
                         //check our rules
                         if (run.goal <= 2 || BaseHunieModPlugin.SplitRules.Value <= 0) didSplit = run.split(____isBonusRound);
@@ -89,10 +113,10 @@ namespace HunieMod
                         if (!____isBonusRound) RunTimerPatches.revertDiffDelay.Start();
                         RunTimerPatches.isBonusRound = ____isBonusRound;
                         int dateNum = startingRelationship;
-                        //if (____isBonusRound) dateNum++; I thought I need to increase this but it makes it #6
 
                         string newSplit = GameManager.Stage.girl.definition.firstName + " #" + dateNum;
                         if (GameManager.Stage.girl.definition.firstName == "Kyu" && startingCompletedGirls == 0) newSplit = "Tutorial";
+                        else if (____isBonusRound) newSplit = GameManager.Stage.girl.definition.firstName + " Bonus";
                         newSplit += "\n      " + run.splitText + "\n";
                         run.push(newSplit);
 
@@ -349,6 +373,7 @@ namespace HunieMod
             //add mod version and settings info to the corner (or just edit the text if on Valentine's)
             int version = BaseHunieModPlugin.GameVersion(); //0 = jan23, 1 = valentines
             string[] v = { "Jan. 23", "Valentine's" };
+            Logger.LogMessage("Game Version " + v[version]);
             string newText1 = "Speedrun Mod " + BaseHunieModPlugin.PluginVersion + " (" + v[version] + ")";
             string newText2 = "";
             if (BaseHunieModPlugin.VsyncEnabled.Value)
@@ -361,6 +386,10 @@ namespace HunieMod
             if (BaseHunieModPlugin.V1Drain.Value && version == 0)
                 newText2 += ", V1.0 Drain";
 
+            ourContainer = UnityEngine.Object.Instantiate(__instance.buttonContainer) as DisplayObject;
+            ourContainer.RemoveAllChildren();
+            __instance.buttonContainer.AddChild(ourContainer);
+
             if (version == 0)
             {
                 //create our own label in the bottom-left
@@ -372,10 +401,12 @@ namespace HunieMod
                 labelObject.label.maxChars = 999;
 
                 labelObject.SetText(newText1 + "\n" + newText2);
-                __instance.buttonContainer.AddChild(labelObject);
-                labelObject.ShiftSelfToTop();
-                labelObject.localX = -503f;
-                labelObject.localY = -10f;
+                labelObject.localX = 10f;
+                labelObject.localY = 28f;
+                ourContainer.AddChild(labelObject);
+                //__instance.buttonContainer.AddChild(labelObject);
+                //labelObject.ShiftSelfToTop();
+                
             }
             else
             {
@@ -413,15 +444,15 @@ namespace HunieMod
                 InitializeOurThing(currentDifficulty, __instance.buttonContainer, xpos + offset - 5, ypos);
                 InitializeOurThing(rightArrow2, __instance.buttonContainer, xpos + offset + diff, ypos);*/
                 //centered horizontally, stacked on top of each other
-                InitializeOurThing(leftArrow, __instance.buttonContainer, xpos - diff, ypos + yoffset);
-                InitializeOurThing(currentCategory, __instance.buttonContainer, xpos - 5, ypos + yoffset);
-                InitializeOurThing(rightArrow, __instance.buttonContainer, xpos + diff, ypos + yoffset);
-                InitializeOurThing(leftArrow2, __instance.buttonContainer, xpos - diff, ypos - yoffset);
-                InitializeOurThing(currentDifficulty, __instance.buttonContainer, xpos - 5, ypos - yoffset);
-                InitializeOurThing(rightArrow2, __instance.buttonContainer, xpos + diff, ypos - yoffset);
-                InitializeOurThing(PBtext, __instance.buttonContainer, xpos - offset - 5, ypos - yoffset * 3);
-                InitializeOurThing(SOBtext, __instance.buttonContainer, xpos + offset - 5, ypos - yoffset * 3);
-                SOBtext.label.color = new Color(221/256f, 175/256f, 76/256f, 0);
+                InitializeOurThing(leftArrow, ourContainer, xpos - diff, ypos + yoffset);
+                InitializeOurThing(currentCategory, ourContainer, xpos - 5, ypos + yoffset);
+                InitializeOurThing(rightArrow, ourContainer, xpos + diff, ypos + yoffset);
+                InitializeOurThing(leftArrow2, ourContainer, xpos - diff, ypos - yoffset);
+                InitializeOurThing(currentDifficulty, ourContainer, xpos - 5, ypos - yoffset);
+                InitializeOurThing(rightArrow2, ourContainer, xpos + diff, ypos - yoffset);
+                InitializeOurThing(PBtext, ourContainer, xpos - offset - 5, ypos - yoffset * 3);
+                InitializeOurThing(SOBtext, ourContainer, xpos + offset - 5, ypos - yoffset * 3);
+                SOBtext.label.color = new Color(221 / 256f, 175 / 256f, 76 / 256f, 0);
                 currentDifficulty.SetText(RunTimer.difficulties[BaseHunieModPlugin.lastChosenDifficulty]);
                 currentCategory.SetText(RunTimer.categories[BaseHunieModPlugin.lastChosenCategory]);
                 PBtext.SetText("PB: " + RunTimer.GetPB(BaseHunieModPlugin.lastChosenCategory, BaseHunieModPlugin.lastChosenDifficulty));
@@ -440,7 +471,7 @@ namespace HunieMod
             {
                 ____creditsButton.SetLightness(0f);
                 ____creditsButton.AddChild(spr);
-                
+
                 updateSprite = ____creditsButton.GetChildren(true)[____creditsButton.GetChildren().Length - 1] as SpriteObject;
                 updateSprite.SetLocalPosition(-83, 24);
                 updateSprite.SetOwnChildIndex(3);
@@ -448,5 +479,15 @@ namespace HunieMod
             }
         }
 
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(LoadScreen), "Refresh")]
+        public static void UpdateOurLabelPos(LoadScreen __instance, ref SpriteObject ____creditsButton, ref UICellApp ____settingsCellApp)
+        {
+            if (ourContainer != null)
+            {
+                float xoffset = 513f - __instance.buttonContainer.localX;
+                ourContainer.localX = xoffset;
+            }
+        }
     }
 }
