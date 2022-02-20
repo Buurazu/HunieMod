@@ -28,7 +28,7 @@ namespace HunieMod
 
         public static bool IsMouseKeyDown()
         {
-            if (mashCheat) return true;
+            if (mashCheat && GameManager.System.GameState == GameState.SIM) return true;
             if (BaseHunieModPlugin.MouseWheelEnabled.Value && Input.GetAxis("Mouse ScrollWheel") != 0) return true;
             if (BaseHunieModPlugin.AxisesEnabled.Value)
             {
@@ -46,7 +46,7 @@ namespace HunieMod
 
         public static bool IsMouseKeyUp()
         {
-            if (mashCheat) return true;
+            if (mashCheat && GameManager.System.GameState == GameState.SIM) return true;
             if (BaseHunieModPlugin.MouseWheelEnabled.Value && Input.GetAxis("Mouse ScrollWheel") != 0) return true;
             if (BaseHunieModPlugin.AxisesEnabled.Value)
             {
@@ -64,7 +64,7 @@ namespace HunieMod
 
         public static bool IsMouseKey()
         {
-            if (mashCheat) return true;
+            if (mashCheat && GameManager.System.GameState == GameState.SIM) return true;
             if (BaseHunieModPlugin.MouseWheelEnabled.Value && Input.GetAxis("Mouse ScrollWheel") != 0) return true;
             if (BaseHunieModPlugin.AxisesEnabled.Value)
             {

@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "2.6.1";
+        public const string PluginVersion = "2.7.2";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -30,6 +30,7 @@ namespace HunieMod
         public static ConfigEntry<KeyboardShortcut> ResetKey2 { get; private set; }
         public static ConfigEntry<Boolean> CensorshipEnabled { get; private set; }
         public static ConfigEntry<KeyboardShortcut> CheatHotkey { get; private set; }
+        public static ConfigEntry<Boolean> CheatSpeedEnabled { get; private set; }
         public static ConfigEntry<Boolean> MouseWheelEnabled { get; private set; }
         public static ConfigEntry<Boolean> AxisesEnabled { get; private set; }
         public static ConfigEntry<Boolean> InGameTimer { get; private set; }
@@ -96,6 +97,10 @@ namespace HunieMod
                 "Settings", nameof(CheatHotkey),
                 new KeyboardShortcut(KeyCode.C),
                 "The hotkey to use for activating Cheat Mode on the title screen (set to None to disable)");
+            CheatSpeedEnabled = Config.Bind(
+                "Settings", nameof(CheatSpeedEnabled),
+                true,
+                "Enable or disable Cheat Mode skipping the tutorial and speeding up transitions");
 
             CensorshipEnabled = Config.Bind(
                 "Settings", nameof(CensorshipEnabled),
@@ -330,6 +335,7 @@ namespace HunieMod
                     PlayCheatLine();
                     Harmony.CreateAndPatchAll(typeof(CheatPatches), null);
                     cheatsEnabled = true;
+                    if (CheatSpeedEnabled.Value) Game.Hook.skipTransitionScreen = true;
                 }
             }
 
@@ -435,23 +441,58 @@ namespace HunieMod
 
                 if (Input.GetKeyDown(KeyCode.F5))
                 {
-                    foreach (GirlPlayerData girlData in GameManager.System.Player.girls)
+                    if (GameManager.System.GameState == GameState.PUZZLE)
                     {
-                        if (girlData.metStatus < GirlMetStatus.UNKNOWN) girlData.metStatus = GirlMetStatus.UNKNOWN;
+                        //refresh the date!!!
+                        if (GameManager.System.Puzzle.Game.puzzleGameState != PuzzleGameState.WAITING)
+                        {
+                            GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Can only refresh puzzles when you could make a move");
+                        }
+                        else
+                        {
+                            GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Restarting the date!");
+                            GameManager.Stage.uiPuzzle.puzzleStatus.UpdatePuzzleEffects(null);
+                            AccessTools.Method(typeof(PuzzleManager), "HidePuzzleGrid").Invoke(GameManager.System.Puzzle, null);
+                            GameManager.System.Puzzle.TravelToPuzzleLocation(GameManager.System.Location.currentLocation, GameManager.System.Location.currentGirl);
+                        }
                     }
-                    GameUtil.ShowNotification(CellNotificationType.MESSAGE, "All girls available to meet!");
+                    else if (GameManager.System.GameState == GameState.SIM)
+                    {
+                        foreach (GirlPlayerData girlData in GameManager.System.Player.girls)
+                        {
+                            if (girlData.metStatus < GirlMetStatus.UNKNOWN) girlData.metStatus = GirlMetStatus.UNKNOWN;
+                        }
+                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "All girls available to meet!");
+                    }
                 }
 
                 if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
                 {
+                    //Passion/Sentiment/Moves increase/decrease
+                    if (GameManager.System.GameState == GameState.PUZZLE)
+                    {
+                        int mult = 1;
+                        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) mult = -1;
+
+                        if (Input.GetKeyDown(KeyCode.P))
+                            GameManager.System.Puzzle.Game.SetResourceValue(PuzzleGameResourceType.PASSION,
+                                GameManager.System.Puzzle.GetPassionLevelCost(GameManager.System.Puzzle.Game.currentPassionLevel + mult), false);
+                        if (Input.GetKeyDown(KeyCode.S)) GameManager.System.Puzzle.Game.AddResourceValue(PuzzleGameResourceType.SENTIMENT, mult, false);
+                        if (Input.GetKeyDown(KeyCode.M)) GameManager.System.Puzzle.Game.AddResourceValue(PuzzleGameResourceType.MOVES, mult, false);
+                        
+
+                    }
+
                     if (Input.GetKeyDown(KeyCode.M))
                     {
-                        InputPatches.mashCheat = !InputPatches.mashCheat;
-                        if (InputPatches.mashCheat)
-                            GameUtil.ShowNotification(CellNotificationType.MESSAGE, "MASH POWER ACTIVATED!!!!!");
-                        else
-                            GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Mash power disabled");
-
+                        if (GameManager.System.GameState == GameState.SIM)
+                        {
+                            InputPatches.mashCheat = !InputPatches.mashCheat;
+                            if (InputPatches.mashCheat)
+                                GameUtil.ShowNotification(CellNotificationType.MESSAGE, "MASH POWER ACTIVATED!!!!!");
+                            else
+                                GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Mash power disabled");
+                        }
                     }
 
                     if (Input.GetKeyDown(KeyCode.N))
@@ -469,7 +510,7 @@ namespace HunieMod
                         GirlPlayerData girlData = GameManager.System.Player.GetGirlData(GameManager.System.Location.currentGirl);
                         
 
-                        if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt))
+                        if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
                         {
                             if (girlData.relationshipLevel > 1)
                             {

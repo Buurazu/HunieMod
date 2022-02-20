@@ -102,7 +102,7 @@ namespace HunieMod
         [HarmonyPatch(typeof(LocationManager), "OnLocationSettled")]
         public static void SkipTutorialOnArrival()
         {
-            if (GameManager.System.Player.tutorialStep < 2)
+            if (GameManager.System.Player.tutorialStep < 2 && BaseHunieModPlugin.CheatSpeedEnabled.Value)
             {
                 GameManager.System.Player.tutorialStep = 2;
                 GameManager.System.Player.money = 1000;

@@ -489,5 +489,61 @@ namespace HunieMod
                 ourContainer.localX = xoffset;
             }
         }
+
+        /*
+        static bool logGetMatch = false;
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(PuzzleGame), "CreateToken")]
+        public static void testingthing2(PuzzleGame __instance, int col)
+        {
+            Logger.LogMessage("testing creating token in column " + col);
+            logGetMatch = true;
+        }
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PuzzleGame), "CreateToken")]
+        public static void testingthing4(PuzzleGame __instance, int col)
+        {
+            Logger.LogMessage("finished testing");
+            logGetMatch = false;
+        }
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PuzzleGame), "GetMatch")]
+        public static void testingthing3(PuzzleGame __instance, PuzzleGridPosition gridPosition, PuzzleTokenDefinition tokenDefinitionOverride, PuzzleMatch __result)
+        {
+            if (!logGetMatch) return;
+            PuzzleGridPosition pgp = gridPosition;
+            Logger.LogMessage(pgp.row + "," + pgp.col);
+            if (pgp.GetToken() != null && pgp.GetToken().definition != null) Logger.LogMessage(pgp.GetToken().definition.name);
+            if (__result == null) Logger.LogMessage("result is null, so no match detected, this token can spawn!");
+        }
+        */
+
+        /*
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(PuzzleGame), "EndTokenMove")]
+        public static void testingthing(PuzzleMatchSet ____moveTokenMatchSet)
+        {
+            Logger.LogMessage("hmm");
+            foreach (PuzzleMatch pm in ____moveTokenMatchSet.matches)
+            {
+                foreach (PuzzleGridPosition pgp in pm.gridPositions)
+                {
+                    Logger.LogMessage(pgp.row + "," + pgp.col + "," + pgp.GetToken().definition.name);
+                }
+            }
+        }
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(PuzzleGame), "SwitchPuzzleGroupTokensWith")]
+        public static void testingthing4(PuzzleGame __instance, PuzzleGroup puzzleGroup)
+        {
+            Logger.LogMessage("hi");
+            for (int i = 0; i < puzzleGroup.gridPositions.Count; i++)
+            {
+                PuzzleGridPosition puzzleGridPosition = puzzleGroup.gridPositions[i];
+                PuzzleToken token = puzzleGridPosition.GetToken(false);
+                Logger.LogMessage("hi" +  i);
+            }
+        }
+        */
     }
 }
