@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "2.7.2";
+        public const string PluginVersion = "2.8";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -139,8 +139,6 @@ namespace HunieMod
             }
 
             Harmony.CreateAndPatchAll(typeof(BasePatches), null);
-            //initiate the variable used for autosplitting
-            BasePatches.InitSearchForMe();
 
             //Create the splits files for the first time if they don't exist
             if (!System.IO.Directory.Exists("splits"))
@@ -169,6 +167,9 @@ namespace HunieMod
             if (CensorshipEnabled.Value) Harmony.CreateAndPatchAll(typeof(CensorshipPatches), null);
             Harmony.CreateAndPatchAll(typeof(InputPatches), null);
             if (InGameTimer.Value) Harmony.CreateAndPatchAll(typeof(RunTimerPatches), null);
+
+            // convert Unlock Venus to All Main Girls
+            RunTimer.ConvertOldSplits();
 
             string both = MouseKeys.Value + "," + ControllerKeys.Value;
             string[] keys = both.Split(',');
@@ -280,25 +281,6 @@ namespace HunieMod
             //InputPatches.mouseWasDown = false; InputPatches.mouseWasClicked = false;
             RunTimerPatches.Update();
 
-            //Test if we should send the "Venus unlocked" signal
-            //All Panties routes would have met Momo or Celeste by now
-            if (GameManager.System.GameState == GameState.SIM
-                && GameManager.System.Player.GetGirlData(GameManager.Stage.uiGirl.alienGirlDef).metStatus != GirlMetStatus.MET
-                && GameManager.System.Player.GetGirlData(GameManager.Stage.uiGirl.catGirlDef).metStatus != GirlMetStatus.MET
-                && !BaseHunieModPlugin.cheatsEnabled && GameManager.Stage.girl.definition.firstName == "Venus"
-                && GameManager.System.Player.GetGirlData(GameManager.Stage.girl.definition).metStatus != GirlMetStatus.MET
-                && GameManager.Stage.girl.girlPieceContainers.localX < 520)
-            {
-                BasePatches.searchForMe = 500;
-                if (run != null && run.goal == 69)
-                {
-                    run.split();
-                    string newSplit = "Venus Unlocked\n      " + run.splitText + "\n";
-                    run.push(newSplit);
-                    run.save();
-                }
-            }
-
             if (GameManager.System.GameState == GameState.TITLE && BasePatches.titleScreenInteractive)
             {
                 bool updateText = false;
@@ -350,7 +332,6 @@ namespace HunieMod
                     if (GameUtil.EndGameSession(false, false, false))
                     {
                         hasReturned = true;
-                        BasePatches.searchForMe = -111;
                         if (run != null)
                         {
                             run.reset();

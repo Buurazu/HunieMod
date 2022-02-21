@@ -2,7 +2,7 @@
 using System.IO;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Linq;
 
 namespace HunieMod
 {
@@ -13,9 +13,9 @@ namespace HunieMod
         {
             WHITE, BLUE, RED, GOLD
         }
-        public const int GETLAID = 0, GETLAIDKYU = 1, UNLOCKVENUS = 2, ALLPANTIES = 3, HUNDREDPERCENT = 4, NONE = 5, ANYCATEGORY = 6;
-        public static string[] categories = new string[] { "Get Laid", "Get Laid + Kyu", "Unlock Venus", "All Panties", "100%", "None", "Any Category" };
-        public static int[] goals = new int[] { 1, 2, 69, 12, 100 };
+        public const int GETLAID = 0, GETLAIDKYU = 1, ALLMAINGIRLS = 2, ALLPANTIES = 3, HUNDREDPERCENT = 4, NONE = 5, ANYCATEGORY = 6;
+        public static string[] categories = new string[] { "Get Laid", "Get Laid + Kyu", "All Main Girls", "All Panties", "100%", "None", "Any Category" };
+        public static int[] goals = new int[] { 1, 2, 8, 12, 100 };
         public static string[] difficulties = new string[] { "Any Difficulty", "Easy", "Normal", "Hard" };
 
         //white, blue, red, gold
@@ -131,6 +131,45 @@ namespace HunieMod
             }
             return sum;
         }
+
+        public static void ConvertOldSplits()
+        {
+            //skip Any Difficulty
+            for (int d = 1; d < difficulties.Length; d++)
+            {
+                string category = "Unlock Venus" + " " + difficulties[d];
+                string category2 = "All Main Girls" + " " + difficulties[d];
+                //string target = "splits/data/" + category + ".txt";
+                if (GetPB(category) != "N/A")
+                {
+                    string old2 = "splits/data/" + category + " Dates.txt";
+                    string old3 = "splits/data/" + category + " Bonuses.txt";
+                    string target2 = "splits/data/" + category2 + " Dates.txt";
+                    string target3 = "splits/data/" + category2 + " Bonuses.txt";
+
+                    File.Move(old2, target2);
+                    File.Move(old3, target3);
+                    // remove the last line of the dates file since it's unlocking venus
+                    var textFile = File.ReadAllLines(target2);
+                    File.WriteAllLines(target2, File.ReadAllLines(target2).Take(textFile.Length - 1).ToArray());
+
+                    // do the same for the gold files
+                    old2 = "splits/data/" + category + " Dates Golds.txt";
+                    old3 = "splits/data/" + category + " Bonuses Golds.txt";
+                    target2 = "splits/data/" + category2 + " Dates Golds.txt";
+                    target3 = "splits/data/" + category2 + " Bonuses Golds.txt";
+
+                    File.Move(old2, target2);
+                    File.Move(old3, target3);
+                    // remove the last line of the dates file since it's unlocking venus
+                    textFile = File.ReadAllLines(target2);
+                    File.WriteAllLines(target2, File.ReadAllLines(target2).Take(textFile.Length - 1).ToArray());
+                }
+            }
+        }
+
+
+
 
         public RunTimer()
         {

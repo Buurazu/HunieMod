@@ -17,9 +17,6 @@ namespace HunieMod
     // Token: 0x02000002 RID: 2
     public class BasePatches
     {
-
-        public static int searchForMe;
-
         public static SpriteObject updateSprite;
 
         public static DisplayObject ourContainer;
@@ -36,11 +33,6 @@ namespace HunieMod
         public static int startingRelationship = 0;
 
         public static bool titleScreenInteractive = true;
-
-        public static void InitSearchForMe()
-        {
-            searchForMe = 123456789;
-        }
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(LocationManager), "OnLocationArrival")]
@@ -74,11 +66,18 @@ namespace HunieMod
                         else if (girlName == "Audrey")
                             run.chosenCategory = RunTimer.GETLAIDKYU;
                         else
-                            run.chosenCategory = RunTimer.UNLOCKVENUS;
+                            run.chosenCategory = RunTimer.ALLMAINGIRLS;
                         run.refresh();
                         run.switchedCategory = true;
                     }
-                    else if (run.chosenCategory == RunTimer.UNLOCKVENUS && GameManager.Stage.girl.definition.secretGirl)
+                    // switch to All Main Girls after an Aiko start if you initiate a non-Aiko date
+                    else if (run.chosenCategory == RunTimer.GETLAID && GameManager.Stage.girl.definition.firstName != "Aiko")
+                    {
+                        run.chosenCategory = RunTimer.ALLMAINGIRLS;
+                        run.refresh();
+                    }
+                    // switch to All Panties if you've initiated a date with a secret girl
+                    else if (run.chosenCategory == RunTimer.ALLMAINGIRLS && GameManager.Stage.girl.definition.secretGirl)
                     {
                         run.chosenCategory = RunTimer.ALLPANTIES;
                         run.refresh();
@@ -88,9 +87,6 @@ namespace HunieMod
             }
             if (__instance.currentDisplayAffection == ____goalAffection && (____victory || ____isBonusRound))
             {
-                //make the autosplitter more viable for 100%?
-                if (startingCompletedGirls < 12)
-                    searchForMe = 100;
                 //if a timer is running, split
                 if (!splitThisDate && run != null)
                 {
@@ -134,7 +130,6 @@ namespace HunieMod
             }
             else
             {
-                searchForMe = 0;
                 replacingText = false;
                 splitThisDate = false;
             }
@@ -290,8 +285,6 @@ namespace HunieMod
         public static void MaleStart()
         {
             titleScreenInteractive = false;
-            if (!BaseHunieModPlugin.cheatsEnabled)
-                searchForMe = 111;
         }
 
         [HarmonyPostfix]
@@ -299,8 +292,6 @@ namespace HunieMod
         public static void FemaleStart()
         {
             titleScreenInteractive = false;
-            if (!BaseHunieModPlugin.cheatsEnabled)
-                searchForMe = 111;
         }
 
         [HarmonyPostfix]
