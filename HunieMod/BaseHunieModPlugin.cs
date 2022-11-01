@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "2.8";
+        public const string PluginVersion = "3.2";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -40,6 +40,9 @@ namespace HunieMod
         public static ConfigEntry<Boolean> V1Drain { get; private set; }
         public static ConfigEntry<Boolean> CustomCGs { get; private set; }
 
+        public static Dictionary<string, ConfigEntry<int>> hairstylePreferences = new Dictionary<string, ConfigEntry<int>>();
+        public static Dictionary<string,ConfigEntry<int>> outfitPreferences = new Dictionary<string, ConfigEntry<int>>();
+
         //hasReturned is used to display "This is for practice purposes" after a return to main menu, until you start a new file
         public static bool hasReturned = false;
         public static bool cheatsEnabled = false;
@@ -54,8 +57,11 @@ namespace HunieMod
 
         public static RunTimer run;
 
-        public static int lastChosenCategory = 6;
+        public static int lastChosenCategory = RunTimer.ANYCATEGORY;
         public static int lastChosenDifficulty = 0;
+        public static int swimsuitsChosen = 0;
+
+        public static Dictionary<string, AudioClip> customSFX = new Dictionary<string, AudioClip>();
 
         private void Awake()
         {
@@ -129,6 +135,39 @@ namespace HunieMod
 
         void Start()
         {
+            for (int i = 0; i < 12; i++)
+            {
+                GirlDefinition gd = HunieMod.Definitions.Girls[i];
+                string hairstyles = gd.firstName + " Hairstyles: ", outfits = gd.firstName + " Outfits: ";
+                for (int j = 0; j < 5; j++)
+                {
+                    hairstyles += j + " = " + gd.hairstyles[j].styleName + ", ";
+                    outfits += j + " = " + gd.outfits[j].styleName + ", ";
+                }
+                hairstyles += "5 = Random"; outfits += "5 = Random";
+                hairstylePreferences.Add(gd.firstName, Config.Bind("Style", gd.firstName + "Hairstyle", 0, hairstyles));
+                outfitPreferences.Add(gd.firstName, Config.Bind("Style", gd.firstName + "Outfit", 0, outfits));
+                if (outfitPreferences[gd.firstName].Value == 4) swimsuitsChosen++;
+            }
+            // Load any custom SFX files located in the sfx folder
+            if (Directory.Exists("sfx"))
+            {
+                foreach (string sfxFile in Directory.GetFiles("sfx"))
+                {
+                    string ext = Path.GetExtension(sfxFile).ToLower();
+                    if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
+                    {
+                        string fileName = new Uri(Path.GetFullPath(sfxFile)).AbsoluteUri;
+                        WWW NewSound = new WWW(fileName);
+                        while (!NewSound.isDone) { };
+                        //don't include "sfx\" or the file extension in the dictionary string
+                        customSFX.Add(sfxFile.Substring(4, sfxFile.Length - 8), NewSound.GetAudioClip(false));
+                        Logger.LogMessage("Added " + sfxFile.Substring(4, sfxFile.Length - 8));
+                    }
+                    else Logger.LogMessage(sfxFile + " is an invalid file extension (use .ogg, .wav, or .mp3)");
+                }
+            }
+
             if (!VsyncEnabled.Value)
             {
                 QualitySettings.vSyncCount = 0;
@@ -279,7 +318,7 @@ namespace HunieMod
             Logger.LogMessage("alpha 1: " + GameManager.Stage.uiTop.buttonHuniebee.spriteAlpha);
             Logger.LogMessage("alpha 2: " + GameManager.Stage.uiTop.buttonHuniebeeOverlay.spriteAlpha);*/
             //InputPatches.mouseWasDown = false; InputPatches.mouseWasClicked = false;
-            RunTimerPatches.Update();
+            CheatPatches.Update(); RunTimerPatches.Update();
 
             if (GameManager.System.GameState == GameState.TITLE && BasePatches.titleScreenInteractive)
             {
@@ -317,7 +356,7 @@ namespace HunieMod
                     PlayCheatLine();
                     Harmony.CreateAndPatchAll(typeof(CheatPatches), null);
                     cheatsEnabled = true;
-                    if (CheatSpeedEnabled.Value) Game.Hook.skipTransitionScreen = true;
+                    if (CheatSpeedEnabled.Value) GameManager.System.Hook.skipTransitionScreen = true;
                 }
             }
 
@@ -369,206 +408,6 @@ namespace HunieMod
                     run.reset(false);
                     GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Run quit!");
                 }
-            }
-
-            if (cheatsEnabled)
-            {
-                if (Input.GetKeyDown(KeyCode.F1))
-                {
-                    if (GameManager.System.GameState == GameState.PUZZLE)
-                    {
-                        if (GameManager.System.Puzzle.Game.puzzleGameState == PuzzleGameState.WAITING)
-                        {
-                            GameManager.System.Puzzle.Game.SetResourceValue(PuzzleGameResourceType.AFFECTION, 999999, false);
-                            GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Puzzle cleared!");
-                        }
-                    }
-                    else if (GameManager.System.GameState == GameState.SIM)
-                    {
-                        CheatPatches.AddGreatGiftsToInventory();
-                        GameManager.System.Player.money = 69420;
-                        GameManager.System.Player.hunie = 69420;
-                    }
-                }
-
-                if (Input.GetKeyDown(KeyCode.F2))
-                {
-                    if (savingDisabled)
-                    {
-                        savingDisabled = false;
-                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Saving has been enabled");
-                    }
-                    else
-                    {
-                        savingDisabled = true;
-                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Saving has been disabled");
-                    }
-                }
-
-                if (Input.GetKeyDown(KeyCode.F3))
-                {
-                    if (GameManager.System.GameState == GameState.PUZZLE)
-                    {
-                        if (GameManager.System.Puzzle.Game.isBonusRound)
-                        {
-                            GameManager.System.Puzzle.Game.SetResourceValue(PuzzleGameResourceType.AFFECTION, 0, false);
-                            run.runTimer = DateTime.UtcNow.Ticks;
-                        }
-                        AccessTools.Field(typeof(PuzzleGame), "_goalAffection")?.SetValue(GameManager.System.Puzzle.Game, 10000);
-                        GameManager.System.Puzzle.Game.AddResourceValue(PuzzleGameResourceType.AFFECTION, 0, false);
-                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Goal set to 10,000!");
-                    }
-                }
-
-                if (Input.GetKeyDown(KeyCode.F5))
-                {
-                    if (GameManager.System.GameState == GameState.PUZZLE)
-                    {
-                        //refresh the date!!!
-                        if (GameManager.System.Puzzle.Game.puzzleGameState != PuzzleGameState.WAITING)
-                        {
-                            GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Can only refresh puzzles when you could make a move");
-                        }
-                        else
-                        {
-                            GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Restarting the date!");
-                            GameManager.Stage.uiPuzzle.puzzleStatus.UpdatePuzzleEffects(null);
-                            AccessTools.Method(typeof(PuzzleManager), "HidePuzzleGrid").Invoke(GameManager.System.Puzzle, null);
-                            GameManager.System.Puzzle.TravelToPuzzleLocation(GameManager.System.Location.currentLocation, GameManager.System.Location.currentGirl);
-                        }
-                    }
-                    else if (GameManager.System.GameState == GameState.SIM)
-                    {
-                        foreach (GirlPlayerData girlData in GameManager.System.Player.girls)
-                        {
-                            if (girlData.metStatus < GirlMetStatus.UNKNOWN) girlData.metStatus = GirlMetStatus.UNKNOWN;
-                        }
-                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "All girls available to meet!");
-                    }
-                }
-
-                if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
-                {
-                    //Passion/Sentiment/Moves increase/decrease
-                    if (GameManager.System.GameState == GameState.PUZZLE)
-                    {
-                        int mult = 1;
-                        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) mult = -1;
-
-                        if (Input.GetKeyDown(KeyCode.P))
-                            GameManager.System.Puzzle.Game.SetResourceValue(PuzzleGameResourceType.PASSION,
-                                GameManager.System.Puzzle.GetPassionLevelCost(GameManager.System.Puzzle.Game.currentPassionLevel + mult), false);
-                        if (Input.GetKeyDown(KeyCode.S)) GameManager.System.Puzzle.Game.AddResourceValue(PuzzleGameResourceType.SENTIMENT, mult, false);
-                        if (Input.GetKeyDown(KeyCode.M)) GameManager.System.Puzzle.Game.AddResourceValue(PuzzleGameResourceType.MOVES, mult, false);
-                        
-
-                    }
-
-                    if (Input.GetKeyDown(KeyCode.M))
-                    {
-                        if (GameManager.System.GameState == GameState.SIM)
-                        {
-                            InputPatches.mashCheat = !InputPatches.mashCheat;
-                            if (InputPatches.mashCheat)
-                                GameUtil.ShowNotification(CellNotificationType.MESSAGE, "MASH POWER ACTIVATED!!!!!");
-                            else
-                                GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Mash power disabled");
-                        }
-                    }
-
-                    if (Input.GetKeyDown(KeyCode.N))
-                    {
-                        CheatPatches.awooga = !CheatPatches.awooga;
-                        if (CheatPatches.awooga)
-                            GameUtil.ShowNotification(CellNotificationType.MESSAGE, "AWOOOOOGA");
-                        else
-                            GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Nude cheat disabled");
-                        CheatPatches.RefreshGirls();
-                    }
-
-                    if (Input.GetKeyDown(KeyCode.R))
-                    {
-                        GirlPlayerData girlData = GameManager.System.Player.GetGirlData(GameManager.System.Location.currentGirl);
-                        
-
-                        if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-                        {
-                            if (girlData.relationshipLevel > 1)
-                            {
-                                int newLevel = girlData.relationshipLevel - 1;
-                                AccessTools.Field(typeof(GirlPlayerData), "_relationshipLevel")?.SetValue(girlData, newLevel);
-                                GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Relationship Leveled Down to " + girlData.relationshipLevel + "!");
-                                GameManager.Stage.uiGirl.ShowCurrentGirlStats();
-                            }
-                        }
-                        else
-                        {
-                            if (girlData.relationshipLevel != 5)
-                            {
-                                int newLevel = girlData.relationshipLevel + 1;
-                                AccessTools.Field(typeof(GirlPlayerData), "_relationshipLevel")?.SetValue(girlData, newLevel);
-                                GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Relationship Leveled Up to " + girlData.relationshipLevel + "!");
-                                GameManager.Stage.uiGirl.ShowCurrentGirlStats();
-                            }
-                        }
-                    }
-
-                    if (Input.GetKeyDown(KeyCode.T))
-                    {
-                        //PUZZLE TEST
-                        /*The pieces in tokens are ordered alphabetically
-                        Broken Heart, Flirtation, Joy, Passion, Romance, Sentiment, Sexuality, Talent */
-                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "PUZZLE TEST");
-                        PuzzleTokenDefinition[] tokens = GameManager.Data.PuzzleTokens.GetAll();
-
-                        Dictionary<string, PuzzleGridPosition> theBoard = (Dictionary<string, PuzzleGridPosition>)AccessTools.Field(typeof(PuzzleGame), "_gridPositions").GetValue(Game.Puzzle.Game);
-                        UIPuzzleGrid ui = (UIPuzzleGrid)AccessTools.Field(typeof(PuzzleGame), "_puzzleGrid").GetValue(Game.Puzzle.Game);
-
-                        /*
-                        int[] badboard = {
-                        1, 4, 6, 7, 1, 4, 6, 7,
-                        4, 6, 7, 1, 4, 6, 7, 1,
-                        6, 7, 1, 4, 6, 7, 1, 4,
-                        1, 4, 6, 7, 1, 4, 6, 7,
-                        4, 6, 7, 1, 4, 6, 7, 1,
-                        6, 7, 1, 4, 6, 7, 1, 4,
-                        1, 4, 6, 7, 1, 4, 6, 7
-                    };
-                        */
-
-                        int[] badboard = {
-                        1, 4, 6, 7, 1, 4, 6, 7,
-                        4, 6, 7, 1, 4, 0, 7, 1,
-                        6, 7, 1, 4, 6, 6, 1, 4,
-                        1, 4, 6, 7, 1, 6, 6, 7,
-                        4, 6, 7, 6, 6, 7, 6, 1,
-                        6, 7, 1, 0, 0, 6, 0, 0,
-                        1, 4, 6, 0, 0, 6, 0, 0
-                    };
-                        bool applied = false;
-                        for (int m = 6; m >= 0; m--)
-                        {
-                            for (int n = 7; n >= 0; n--)
-                            {
-                                PuzzleGridPosition blank = new PuzzleGridPosition(m, n, ui);
-                                PuzzleGridPosition pgp = theBoard[blank.GetKey(0, 0)];
-                                PuzzleToken pt = (PuzzleToken)AccessTools.Field(typeof(PuzzleGridPosition), "_token").GetValue(pgp);
-                                //pt.definition = tokens[badboard[(m * 8) + n]];
-                                pt.definition = tokens[(n+m)%2+1];
-                                pt.level = 1;
-                                if ((n + m) % 2 + 1 == 1 && !applied)
-                                {
-                                    pt.level = 2;
-                                    applied = true;
-                                }
-                                pt.sprite.SetSprite(GameManager.Stage.uiPuzzle.puzzleGrid.puzzleTokenSpriteCollection, pt.definition.levels[pt.level - 1].GetSpriteName(false, false));
-                                pgp.SetToken(pt);
-                            }
-                        }
-
-                    }
-                }
-
             }
         }
         /// <summary>

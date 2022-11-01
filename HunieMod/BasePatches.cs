@@ -52,13 +52,25 @@ namespace HunieMod
             //if (BaseHunieModPlugin.cheatsEnabled || BaseHunieModPlugin.hasReturned) return;
             if (__instance.currentDisplayAffection == 0)
             {
+                if (run != null) {
+                    if (run.finalRunDisplay == "" && BaseHunieModPlugin.swimsuitsChosen >= 8)
+                    {
+                        Logger.LogMessage("Insane amount of swimsuits detected");
+                        run.push("WARNING! This runner is extremely horny!\n\n");
+                    }
+                    if (run.chosenCategory == RunTimer.INTRO && !run.finishedRun && ____goalAffection < 10000)
+                    {
+                        ____goalAffection = 10000;
+                        GameManager.System.Puzzle.Game.AddResourceValue(PuzzleGameResourceType.AFFECTION, 0, false);
+                    }
+                }
                 startingCompletedGirls = GameManager.System.Player.GetTotalMaxRelationships();
                 startingRelationship = GameManager.System.Player.GetGirlData(GameManager.Stage.girl.definition).relationshipLevel;
                 //Logger.LogMessage(GameManager.System.Player.GetTotalMaxRelationships() + "," + GameManager.System.Player.GetTotalGirlsRelationshipLevel());
                 //auto category detection
-                if (run != null && BaseHunieModPlugin.lastChosenCategory == RunTimer.ANYCATEGORY)
+                if (run != null && BaseHunieModPlugin.lastChosenCategory == RunTimer.ANYCATEGORY && GameManager.System.Player.tutorialComplete)
                 {
-                    if (run.switchedCategory == false && GameManager.System.Player.GetTotalGirlsRelationshipLevel() == 0 && GameManager.Stage.girl.definition.firstName != "Kyu")
+                    if (run.switchedCategory == false && GameManager.System.Player.GetTotalGirlsRelationshipLevel() == 0)
                     {
                         string girlName = GameManager.Stage.girl.definition.firstName;
                         if (girlName == "Aiko")
@@ -69,6 +81,14 @@ namespace HunieMod
                             run.chosenCategory = RunTimer.ALLMAINGIRLS;
                         run.refresh();
                         run.switchedCategory = true;
+                    }
+                    // switch to Get Laid Kyu after a Get Laid run finished and we date Kyu
+                    else if (run.chosenCategory == RunTimer.GETLAID && run.category == "" && GameManager.Stage.girl.definition.firstName == "Kyu")
+                    {
+                        run.chosenCategory = RunTimer.GETLAIDKYU;
+                        run.finishedRun = false;
+                        //run.chosenDifficulty = (int)GameManager.System.Player.settingsDifficulty + 1;
+                        run.refresh();
                     }
                     // switch to All Main Girls after an Aiko start if you initiate a non-Aiko date
                     else if (run.chosenCategory == RunTimer.GETLAID && GameManager.Stage.girl.definition.firstName != "Aiko")
@@ -82,10 +102,43 @@ namespace HunieMod
                         run.chosenCategory = RunTimer.ALLPANTIES;
                         run.refresh();
                     }
-
                 }
             }
-            if (__instance.currentDisplayAffection == ____goalAffection && (____victory || ____isBonusRound))
+            if (run != null && run.chosenCategory == RunTimer.INTRO)
+            {
+                bool didSplit = false;
+                bool finalSplit = false;
+                if (run.splits.Count == 9 && __instance.currentDisplayAffection == ____goalAffection && ____victory)
+                {
+                    finalSplit = run.split(true);
+                }
+                else if (run.splits.Count < 9 && __instance.currentDisplayAffection >= 1000 * (run.splits.Count+1))
+                {
+                    didSplit = run.split(false);
+                }
+                if (finalSplit || didSplit)
+                {
+                    if (finalSplit)
+                    {
+                        RunTimerPatches.initialTimerDelay.Start();
+                    }
+                    else
+                    {
+                        RunTimerPatches.preventAllUpdate = true;
+                        RunTimerPatches.revertDiffDelay.Start();
+                    }
+                    
+                    RunTimerPatches.isBonusRound = false;
+
+                    string newSplit = run.splits.Count + ",000 Points";
+                    newSplit += "\n      " + run.splitText + "\n";
+                    run.push(newSplit);
+
+                    if (finalSplit)
+                        RunTimerPatches.savePBDelay.Start();
+                }
+            }
+            else if (__instance.currentDisplayAffection == ____goalAffection && (____victory || ____isBonusRound))
             {
                 //if a timer is running, split
                 if (!splitThisDate && run != null)
@@ -106,25 +159,29 @@ namespace HunieMod
                     if (didSplit)
                     {
                         RunTimerPatches.initialTimerDelay.Start();
-                        if (!____isBonusRound) RunTimerPatches.revertDiffDelay.Start();
+                        //if (!____isBonusRound) RunTimerPatches.revertDiffDelay.Start();
                         RunTimerPatches.isBonusRound = ____isBonusRound;
                         int dateNum = startingRelationship;
 
                         string newSplit = GameManager.Stage.girl.definition.firstName + " #" + dateNum;
                         if (GameManager.Stage.girl.definition.firstName == "Kyu" && startingCompletedGirls == 0) newSplit = "Tutorial";
                         else if (____isBonusRound) newSplit = GameManager.Stage.girl.definition.firstName + " Bonus";
+
                         newSplit += "\n      " + run.splitText + "\n";
                         run.push(newSplit);
 
-                        if (____isBonusRound && (run.goal == startingCompletedGirls + 1))
+                        if ((____isBonusRound && run.goal == startingCompletedGirls + 1) || run.goal == 10000)
                         {
                             //run.save();
                             RunTimerPatches.savePBDelay.Start();
                         }
 
+                        string simTime = ((int)RunTimerPatches.simTime / 60) + ":" + ((int)RunTimerPatches.simTime % 60).ToString("D2");
+                        string dateTime = ((int)RunTimerPatches.dateTime / 60) + ":" + ((int)RunTimerPatches.dateTime % 60).ToString("D2");
+                        Logger.LogMessage("Sim time after " + newSplit + ": " + simTime);
+                        Logger.LogMessage("Date time after " + newSplit + ": " + dateTime);
                     }
                 }
-
 
                 splitThisDate = true;
             }
@@ -479,6 +536,87 @@ namespace HunieMod
                 float xoffset = 513f - __instance.buttonContainer.localX;
                 ourContainer.localX = xoffset;
             }
+        }
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(AudioManager), "Play", typeof(AudioCategory), typeof(AudioDefinition), typeof(bool), typeof(float), typeof(bool))]
+        public static void ReplaceOrgasmSFX(AudioDefinition audioDefinition, float volume)
+        {
+            
+            if (BaseHunieModPlugin.CustomCGs.Value == false) return;
+            if (audioDefinition == null || audioDefinition.clip == null) return;
+            AudioClip newSFX;
+            if (BaseHunieModPlugin.customSFX.TryGetValue(audioDefinition.clip.name, out newSFX))
+            {
+                AudioSource audioSource = GameManager.System.gameCamera.gameObject.AddComponent("AudioSource") as AudioSource;
+                audioSource.clip = newSFX;
+                audioSource.volume *= GameManager.System.settingsSoundVol / 10f;
+                audioSource.Play();
+            }
+        }
+
+        static int tempHS = 0;
+        static int tempOF = 0;
+        static bool inShowGirl = false;
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Girl), "ShowGirl")]
+        public static void SetOutfitOptions(GirlDefinition girlDefinition)
+        {
+            if (BaseHunieModPlugin.cheatsEnabled) return;
+            inShowGirl = true;
+            GirlPlayerData girlData = GameManager.System.Player.GetGirlData(girlDefinition);
+            tempHS = girlData.hairstyle;
+            tempOF = girlData.outfit;
+            if (girlData.hairstyle == 0)
+            {
+                girlData.hairstyle = BaseHunieModPlugin.hairstylePreferences[girlDefinition.firstName].Value;
+            }
+            if (girlData.outfit == 0)
+            {
+                girlData.outfit = BaseHunieModPlugin.outfitPreferences[girlDefinition.firstName].Value;
+            }
+        }
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Girl), "ShowGirl")]
+        public static void RevertOutfitOptions(GirlDefinition girlDefinition)
+        {
+            if (BaseHunieModPlugin.cheatsEnabled) return;
+            inShowGirl = false;
+            GirlPlayerData girlData = GameManager.System.Player.GetGirlData(girlDefinition);
+            girlData.hairstyle = tempHS;
+            girlData.outfit = tempOF;
+        }
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(GirlPlayerData), "GetRandomUnlockedOutfit")]
+        public static bool AllowAnyRandom(ref int __result)
+        {
+            if (!inShowGirl) return true;
+            __result = UnityEngine.Random.Range(0, 4);
+            return false;
+        }
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(GirlPlayerData), "GetRandomUnlockedHairstyle")]
+        public static bool AllowAnyRandom2(ref int __result)
+        {
+            if (!inShowGirl) return true;
+            __result = UnityEngine.Random.Range(0, 4);
+            return false;
+        }
+
+        //replace when girls are forced to be shown in their default styles
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(DialogManager), "ShowMainGirl")]
+        public static void ShowMainGirlStyles(ref string styles)
+        {
+            if (styles == "8,13") styles = "";
+        }
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(DialogManager), "ShowAltGirl")]
+        public static void ShowAltGirlStyles(ref string styles)
+        {
+            if (styles == "8,13") styles = "";
         }
 
         /*

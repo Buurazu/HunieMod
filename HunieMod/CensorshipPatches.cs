@@ -64,6 +64,27 @@ namespace HunieMod
             }
         }
 
+        //Censor the Girl Info Photos thumbnails
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(GirlProfileCellApp), "Init")]
+        public static void NoGirlPhotoTitties(GirlProfileCellApp __instance)
+        {
+            GirlDefinition gd;
+            if (GameManager.Stage.cellPhone.cellMemory.ContainsKey("cell_memory_profile_girl"))
+            {
+                gd = GameManager.Data.Girls.Get(GameManager.Stage.cellPhone.cellMemory["cell_memory_profile_girl"]);
+            }
+            else
+            {
+                gd = GameManager.System.Location.currentGirl;
+            }
+            for (int n = 0; n < 4; n++)
+            {
+                GirlProfilePhoto girlProfilePhoto = __instance.tabPhotos.GetChildByName("GirlProfilePhoto" + n.ToString()) as GirlProfilePhoto;
+                girlProfilePhoto.sprite.SetSprite(gd.photos[0].smallSpriteName[0]);
+            }
+        }
+
         //Keep that bra on
         [HarmonyPrefix]
         [HarmonyPatch(typeof(Girl), "HideBra")]

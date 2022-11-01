@@ -16,6 +16,8 @@ namespace HunieMod
         public static Stopwatch initialTimerDelay = new Stopwatch();
         public static Stopwatch revertDiffDelay = new Stopwatch();
         public static Stopwatch savePBDelay = new Stopwatch();
+        public static float simTime = 0;
+        public static float dateTime = 0;
         public static bool isBonusRound = false;
 
         public static bool preventAllUpdate = false;
@@ -24,6 +26,12 @@ namespace HunieMod
         {
             if (!BaseHunieModPlugin.InGameTimer.Value || BaseHunieModPlugin.run == null) return;
             RunTimer run = BaseHunieModPlugin.run;
+
+            //add to sim/date time
+            if (GameManager.System.GameState == GameState.SIM)
+                simTime += Time.deltaTime;
+            else if (GameManager.System.GameState == GameState.PUZZLE)
+                dateTime += Time.deltaTime;
 
             //checking criterias for non-Wing categories
             if (run.goal == 100 && GameManager.System.SaveFile != null && GameManager.System.SaveFile.GetPercentComplete() == 100)
@@ -50,9 +58,7 @@ namespace HunieMod
                 savePBDelay.Reset();
                 run.save();
             }
-            //BasePatches.Logger.LogDebug(run.goal);
-            //there's no point to reverting our change early, because the passion level gets drained to zero by then anyway
-            /*
+            
             if (revertDiffDelay.IsRunning && revertDiffDelay.ElapsedMilliseconds > 6000)
             {
                 revertDiffDelay.Reset();
@@ -62,11 +68,12 @@ namespace HunieMod
                 status.passionSubtitle.SetText("Passion Level");
                 status.SetPassionLevel(plevel);
             }
-            */
+            
         }
 
         public static void ChangePuzzleUIText()
         {
+            
             RunTimer run = BaseHunieModPlugin.run;
             UIPuzzleStatus status = GameManager.Stage.uiPuzzle.puzzleStatus;
             status.affectionLabel.SetText("^C" + RunTimer.colors[(int)run.splitColor] + "FF" + run.splitText);
@@ -91,9 +98,9 @@ namespace HunieMod
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
-        public static void DisplayOurInfo(ref bool ____victory)
+        public static void DisplayOurInfo(PuzzleGame __instance, ref bool ____victory)
         {
-            if (preventAllUpdate && ____victory)
+            if (preventAllUpdate && (____victory || BaseHunieModPlugin.lastChosenCategory == RunTimer.INTRO))
             {
                 ChangePuzzleUIText();
             }
@@ -149,6 +156,8 @@ namespace HunieMod
             {
                 BaseHunieModPlugin.run = new RunTimer();
             }
+
+            simTime = 0; dateTime = 0;
         }
         
         [HarmonyPostfix]
