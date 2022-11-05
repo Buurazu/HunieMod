@@ -68,7 +68,7 @@ namespace HunieMod
                 startingRelationship = GameManager.System.Player.GetGirlData(GameManager.Stage.girl.definition).relationshipLevel;
                 //Logger.LogMessage(GameManager.System.Player.GetTotalMaxRelationships() + "," + GameManager.System.Player.GetTotalGirlsRelationshipLevel());
                 //auto category detection
-                if (run != null && BaseHunieModPlugin.lastChosenCategory == RunTimer.ANYCATEGORY && GameManager.System.Player.tutorialComplete)
+                if (run != null && !BaseHunieModPlugin.cheatsEnabled && BaseHunieModPlugin.lastChosenCategory == RunTimer.ANYCATEGORY && GameManager.System.Player.tutorialComplete)
                 {
                     if (run.switchedCategory == false && GameManager.System.Player.GetTotalGirlsRelationshipLevel() == 0)
                     {
@@ -540,10 +540,8 @@ namespace HunieMod
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(AudioManager), "Play", typeof(AudioCategory), typeof(AudioDefinition), typeof(bool), typeof(float), typeof(bool))]
-        public static void ReplaceOrgasmSFX(AudioDefinition audioDefinition, float volume)
+        public static void ReplaceAnySFX(AudioDefinition audioDefinition, float volume)
         {
-            
-            if (BaseHunieModPlugin.CustomCGs.Value == false) return;
             if (audioDefinition == null || audioDefinition.clip == null) return;
             AudioClip newSFX;
             if (BaseHunieModPlugin.customSFX.TryGetValue(audioDefinition.clip.name, out newSFX))
@@ -552,6 +550,23 @@ namespace HunieMod
                 audioSource.clip = newSFX;
                 audioSource.volume *= GameManager.System.settingsSoundVol / 10f;
                 audioSource.Play();
+            }
+        }
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(UIPhotoGallery), "ShowPhotoGallery")]
+        public static void PlayFunnyCG4SFX(GirlDefinition initialPhotoGirl, bool singlePhotoMode)
+        {
+            if (singlePhotoMode)
+            {
+                AudioClip newSFX;
+                if (BaseHunieModPlugin.climaxSFX.TryGetValue(initialPhotoGirl.firstName.ToLower(), out newSFX))
+                {
+                    AudioSource audioSource = GameManager.System.gameCamera.gameObject.AddComponent("AudioSource") as AudioSource;
+                    audioSource.clip = newSFX;
+                    audioSource.volume *= GameManager.System.settingsSoundVol / 10f;
+                    audioSource.Play();
+                }
             }
         }
 
@@ -619,6 +634,13 @@ namespace HunieMod
             if (styles == "8,13") styles = "";
         }
 
+        /*[HarmonyPrefix]
+        [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
+        public static void testingthing2(PuzzleGame __instance)
+        {
+            Logger.LogMessage(__instance.puzzleGameState.ToString());
+        }
+        */
         /*
         static bool logGetMatch = false;
         [HarmonyPrefix]

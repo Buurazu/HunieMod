@@ -99,12 +99,29 @@ namespace HunieMod
                 }
                 else if (GameManager.System.GameState == GameState.SIM)
                 {
-                    foreach (GirlPlayerData girlData in GameManager.System.Player.girls)
+                    if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
                     {
-                        if (girlData.metStatus < GirlMetStatus.UNKNOWN) girlData.metStatus = GirlMetStatus.UNKNOWN;
+                        DeleteGiftInventory();
                     }
-                    GameUtil.ShowNotification(CellNotificationType.MESSAGE, "All girls available to meet!");
+                    GameManager.System.Player.RollNewDay();
+                    GameManager.Stage.cellPhone.RefreshActiveCellApp();
+                    GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Refreshing the store!");
                 }
+            }
+
+            if (Input.GetKeyDown(KeyCode.F6))
+            {
+                GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Deleting gifts from inventory!");
+                DeleteGiftInventory();
+            }
+
+            if (Input.GetKeyDown(KeyCode.F7))
+            {
+                foreach (GirlPlayerData girlData in GameManager.System.Player.girls)
+                {
+                    if (girlData.metStatus < GirlMetStatus.UNKNOWN) girlData.metStatus = GirlMetStatus.UNKNOWN;
+                }
+                GameUtil.ShowNotification(CellNotificationType.MESSAGE, "All girls available to meet!");
             }
 
             if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
@@ -301,15 +318,55 @@ namespace HunieMod
 
                 if (Input.GetKeyDown(KeyCode.O))
                 {
-                    foreach (GirlPlayerData girlData in GameManager.System.Player.girls)
+                    if (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
                     {
-                        BaseHunieModPlugin.hairstylePreferences[girlData.GetGirlDefinition().firstName].Value = girlData.hairstyle;
-                        BaseHunieModPlugin.outfitPreferences[girlData.GetGirlDefinition().firstName].Value = girlData.outfit;
-                        //BaseHunieModPlugin.HairstylePreference.ConfigFile.Save();
+                        foreach (GirlPlayerData girlData in GameManager.System.Player.girls)
+                        {
+                            girlData.hairstyle = BaseHunieModPlugin.hairstylePreferences[girlData.GetGirlDefinition().firstName].Value;
+                            girlData.outfit = BaseHunieModPlugin.outfitPreferences[girlData.GetGirlDefinition().firstName].Value;
+                        }
+                        RefreshGirlOutfit(GameManager.Stage.girl);
+                        RefreshGirlOutfit(GameManager.Stage.altGirl);
+                        
+                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Hairstyle and outfit preferences loaded!");
                     }
-                    GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Hairstyles and outfit preferences saved!");
+                    else
+                    {
+                        foreach (GirlPlayerData girlData in GameManager.System.Player.girls)
+                        {
+                            BaseHunieModPlugin.hairstylePreferences[girlData.GetGirlDefinition().firstName].Value = girlData.hairstyle;
+                            BaseHunieModPlugin.outfitPreferences[girlData.GetGirlDefinition().firstName].Value = girlData.outfit;
+                        }
+                        SaveUtils.Save();
+                        GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Hairstyle and outfit preferences saved!");
+                    }
                 }
             }
+        }
+
+        public static void DeleteGiftInventory()
+        {
+            List<UIGirlItemSlot> slots = (List<UIGirlItemSlot>)AccessTools.Field(typeof(UIGirl), "_itemSlots").GetValue(GameManager.Stage.uiGirl);
+            foreach (UIGirlItemSlot slot in slots)
+            {
+                if (slot.itemDefinition.type == ItemType.GIFT || slot.itemDefinition.type == ItemType.FOOD || slot.itemDefinition.type == ItemType.DRINK)
+                    slot.ConsumeSlotItem();
+            }
+
+            InventoryItemPlayerData[] inventory = (InventoryItemPlayerData[])AccessTools.Field(typeof(PlayerManager), "_inventory").GetValue(GameManager.System.Player);
+            foreach (InventoryItemPlayerData slot in inventory)
+            {
+                if (slot.presentDefinition != null || slot.itemDefinition.type == ItemType.GIFT || slot.itemDefinition.type == ItemType.FOOD || slot.itemDefinition.type == ItemType.DRINK)
+                    slot.itemDefinition = null;
+            }
+            GameManager.Stage.cellPhone.RefreshActiveCellApp();
+        }
+
+        public static void RefreshGirlOutfit(Girl girl)
+        {
+            if (girl.definition == null) return;
+            girl.ChangeStyle(girl.definition.hairstyles[BaseHunieModPlugin.hairstylePreferences[girl.definition.firstName].Value].artIndex, true);
+            girl.ChangeStyle(girl.definition.outfits[BaseHunieModPlugin.outfitPreferences[girl.definition.firstName].Value].artIndex, true);
         }
 
         public static void AddItem(string theItem, InventoryItemPlayerData[] target = null)
@@ -501,5 +558,6 @@ namespace HunieMod
         {
             skipThisSetProcess = false;
         }
+
     }
 }

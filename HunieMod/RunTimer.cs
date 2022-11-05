@@ -132,45 +132,6 @@ namespace HunieMod
             return sum;
         }
 
-        public static void ConvertOldSplits()
-        {
-            //skip Any Difficulty
-            for (int d = 1; d < difficulties.Length; d++)
-            {
-                string category = "Unlock Venus" + " " + difficulties[d];
-                string category2 = "All Main Girls" + " " + difficulties[d];
-                //string target = "splits/data/" + category + ".txt";
-                if (GetPB(category) != "N/A")
-                {
-                    string old2 = "splits/data/" + category + " Dates.txt";
-                    string old3 = "splits/data/" + category + " Bonuses.txt";
-                    string target2 = "splits/data/" + category2 + " Dates.txt";
-                    string target3 = "splits/data/" + category2 + " Bonuses.txt";
-
-                    File.Move(old2, target2);
-                    File.Move(old3, target3);
-                    // remove the last line of the dates file since it's unlocking venus
-                    var textFile = File.ReadAllLines(target2);
-                    File.WriteAllLines(target2, File.ReadAllLines(target2).Take(textFile.Length - 1).ToArray());
-
-                    // do the same for the gold files
-                    old2 = "splits/data/" + category + " Dates Golds.txt";
-                    old3 = "splits/data/" + category + " Bonuses Golds.txt";
-                    target2 = "splits/data/" + category2 + " Dates Golds.txt";
-                    target3 = "splits/data/" + category2 + " Bonuses Golds.txt";
-
-                    File.Move(old2, target2);
-                    File.Move(old3, target3);
-                    // remove the last line of the dates file since it's unlocking venus
-                    textFile = File.ReadAllLines(target2);
-                    File.WriteAllLines(target2, File.ReadAllLines(target2).Take(textFile.Length - 1).ToArray());
-                }
-            }
-        }
-
-
-
-
         public RunTimer()
         {
             //no new file, so it's just practice
@@ -191,7 +152,7 @@ namespace HunieMod
             if (cat < categories.Length)
             {
                 //default to Normal
-                if (difficulty == 0) difficulty = 2;
+                if (difficulty == 0 || cat == RunTimer.INTRO) difficulty = 2;
                 if (cat == RunTimer.NONE)
                 {
                     category = ""; finishedRun = true; return;

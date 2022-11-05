@@ -14,6 +14,7 @@ namespace HunieMod
     public class CensorshipPatches
     {
         public static string[] GirlNames = new string[] { "Tiffany", "Aiko", "Kyanna", "Audrey", "Lola", "Nikki", "Jessie", "Beli", "Kyu", "Momo", "Celeste", "Venus" };
+        public static string[] GirlNamesLower = new string[] { "tiffany", "aiko", "kyanna", "audrey", "lola", "nikki", "jessie", "beli", "kyu", "momo", "celeste", "venus" };
 
         //Replace all CGs with the girl's first CG
         [HarmonyPrefix]
@@ -26,21 +27,22 @@ namespace HunieMod
                 ____activeThumbnailIndex -= ____activeThumbnailIndex % 4;
             }
         }
-
         //Replace the sex CGs with user images if they exist
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PhotoGallery), "RefreshBigPhoto")]
-        public static void RefreshBigPhotoPostfix(PhotoGallery __instance, ref int ____activeThumbnailIndex, ref tk2dSpriteCollectionData ____activeSpriteCollection, int __state)
+        public static void ShowFunnyCG4Image(PhotoGallery __instance, ref int ____activeThumbnailIndex, int __state)
         {
             ____activeThumbnailIndex = __state;
             __instance.bigPhoto.RemoveAllChildren();
-            if (__state % 4 == 3 && BaseHunieModPlugin.CustomCGs.Value == true)
+            if (__state % 4 == 3)
             {
-                SpriteObject spr = GameUtil.ImageFileToSprite(GirlNames[__state / 4] + ".png", GirlNames[__state / 4]);
+                //SpriteObject spr = GameUtil.ImageFileToSprite(GirlNames[__state / 4] + ".png", GirlNames[__state / 4]);
+                SpriteObject spr;
 
-                if (spr != null)
+                if (BaseHunieModPlugin.customCG4.TryGetValue(GirlNamesLower[__state / 4], out spr))
                 {
-                    __instance.bigPhoto.AddChild(spr);
+                    SpriteObject spr2 = (SpriteObject)UnityEngine.Object.Instantiate(spr);
+                    __instance.bigPhoto.AddChild(spr2);
 
                     SpriteObject updatedSprite = __instance.bigPhoto.GetChildren(true)[__instance.bigPhoto.GetChildren().Length - 1] as SpriteObject;
                     updatedSprite.SetLocalPosition(0, 0);
@@ -54,7 +56,7 @@ namespace HunieMod
         [HarmonyPatch(typeof(PhotoGallery), "Init")]
         public static void InitGalleryPrefix(List<PhotoGalleryGirlPhoto> photos, bool singlePhoto)
         {
-            //gallery thumbnails doesn't need to be censored if it's in specific CG mode
+            //gallery thumbnails doesn't need to be censored if it's in post-sex single photo mode
             if (!singlePhoto)
             {
                 for (int i = 0; i < photos.Count; i++)
@@ -81,7 +83,8 @@ namespace HunieMod
             for (int n = 0; n < 4; n++)
             {
                 GirlProfilePhoto girlProfilePhoto = __instance.tabPhotos.GetChildByName("GirlProfilePhoto" + n.ToString()) as GirlProfilePhoto;
-                girlProfilePhoto.sprite.SetSprite(gd.photos[0].smallSpriteName[0]);
+                if (girlProfilePhoto.sprite.spriteId != 120)
+                    girlProfilePhoto.sprite.SetSprite(gd.photos[0].smallSpriteName[0]);
             }
         }
 

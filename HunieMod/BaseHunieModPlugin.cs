@@ -20,7 +20,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "3.2";
+        public const string PluginVersion = "3.4";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -61,6 +61,8 @@ namespace HunieMod
         public static int lastChosenDifficulty = 0;
         public static int swimsuitsChosen = 0;
 
+        public static Dictionary<string, SpriteObject> customCG4 = new Dictionary<string, SpriteObject>();
+        public static Dictionary<string, AudioClip> climaxSFX = new Dictionary<string, AudioClip>();
         public static Dictionary<string, AudioClip> customSFX = new Dictionary<string, AudioClip>();
 
         private void Awake()
@@ -135,6 +137,7 @@ namespace HunieMod
 
         void Start()
         {
+            // Load outfit and hairstyle preferences from the config
             for (int i = 0; i < 12; i++)
             {
                 GirlDefinition gd = HunieMod.Definitions.Girls[i];
@@ -155,16 +158,39 @@ namespace HunieMod
                 foreach (string sfxFile in Directory.GetFiles("sfx"))
                 {
                     string ext = Path.GetExtension(sfxFile).ToLower();
-                    if (ext == ".ogg" || ext == ".wav" || ext == ".mp3")
+                    if (ext == ".ogg" || ext == ".wav")
                     {
                         string fileName = new Uri(Path.GetFullPath(sfxFile)).AbsoluteUri;
                         WWW NewSound = new WWW(fileName);
                         while (!NewSound.isDone) { };
                         //don't include "sfx\" or the file extension in the dictionary string
-                        customSFX.Add(sfxFile.Substring(4, sfxFile.Length - 8), NewSound.GetAudioClip(false));
-                        Logger.LogMessage("Added " + sfxFile.Substring(4, sfxFile.Length - 8));
+                        customSFX.Add(sfxFile.Substring(4, sfxFile.Length - 8).ToLower(), NewSound.GetAudioClip(false));
+                        Logger.LogMessage("Added " + sfxFile.Substring(4, sfxFile.Length - 8) + " SFX overlay");
                     }
-                    else Logger.LogMessage(sfxFile + " is an invalid file extension (use .ogg, .wav, or .mp3)");
+                    //else Logger.LogMessage(sfxFile + " is an invalid file extension (use .ogg or .wav)");
+                }
+            }
+            // Load any custom climax images and SFX in the CG4 folder
+            if (Directory.Exists("CG4"))
+            {
+                foreach (string sfxFile in Directory.GetFiles("CG4"))
+                {
+                    string ext = Path.GetExtension(sfxFile).ToLower();
+                    string girlName = sfxFile.Substring(4, sfxFile.Length - 8);
+                    if (ext == ".ogg" || ext == ".wav")
+                    {
+                        string fileName = new Uri(Path.GetFullPath(sfxFile)).AbsoluteUri;
+                        WWW NewSound = new WWW(fileName);
+                        while (!NewSound.isDone) { };
+                        climaxSFX.Add(girlName.ToLower(), NewSound.GetAudioClip(false));
+                        Logger.LogMessage("Added " + girlName + " climax SFX");
+                    }
+                    else if (ext == ".png")
+                    {
+                        customCG4.Add(girlName.ToLower(), GameUtil.ImageFileToSprite(sfxFile, girlName));
+                        Logger.LogMessage("Added " + girlName + " CG4 replacement");
+                    }
+                    //else Logger.LogMessage(sfxFile + " is an invalid file extension (use .png, .ogg, or .wav)");
                 }
             }
 
@@ -180,10 +206,10 @@ namespace HunieMod
             Harmony.CreateAndPatchAll(typeof(BasePatches), null);
 
             //Create the splits files for the first time if they don't exist
-            if (!System.IO.Directory.Exists("splits"))
+            if (!Directory.Exists("splits"))
             {
-                System.IO.Directory.CreateDirectory("splits");
-                System.IO.Directory.CreateDirectory("splits/data");
+                Directory.CreateDirectory("splits");
+                Directory.CreateDirectory("splits/data");
             }
 
             //Check for a new update
@@ -206,9 +232,6 @@ namespace HunieMod
             if (CensorshipEnabled.Value) Harmony.CreateAndPatchAll(typeof(CensorshipPatches), null);
             Harmony.CreateAndPatchAll(typeof(InputPatches), null);
             if (InGameTimer.Value) Harmony.CreateAndPatchAll(typeof(RunTimerPatches), null);
-
-            // convert Unlock Venus to All Main Girls
-            RunTimer.ConvertOldSplits();
 
             string both = MouseKeys.Value + "," + ControllerKeys.Value;
             string[] keys = both.Split(',');
