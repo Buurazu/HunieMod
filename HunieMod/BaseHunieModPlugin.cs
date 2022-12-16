@@ -8,6 +8,9 @@ using BepInEx.Configuration;
 using System.Collections.Generic;
 using System.Net;
 using System.Diagnostics;
+using System.IO.Pipes;
+using System.Threading;
+using System.Text;
 
 namespace HunieMod
 {
@@ -20,7 +23,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "3.4";
+        public const string PluginVersion = "3.5.3";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -29,6 +32,10 @@ namespace HunieMod
         public static ConfigEntry<KeyboardShortcut> ResetKey { get; private set; }
         public static ConfigEntry<KeyboardShortcut> ResetKey2 { get; private set; }
         public static ConfigEntry<Boolean> CensorshipEnabled { get; private set; }
+        public static ConfigEntry<Boolean> OutfitCensorshipEnabled { get; private set; }
+        public static ConfigEntry<Boolean> BraPantiesCensorshipEnabled { get; private set; }
+        public static ConfigEntry<Boolean> SexSFXCensorshipEnabled { get; private set; }
+
         public static ConfigEntry<KeyboardShortcut> CheatHotkey { get; private set; }
         public static ConfigEntry<Boolean> CheatSpeedEnabled { get; private set; }
         public static ConfigEntry<Boolean> MouseWheelEnabled { get; private set; }
@@ -36,7 +43,7 @@ namespace HunieMod
         public static ConfigEntry<Boolean> InGameTimer { get; private set; }
         public static ConfigEntry<int> SplitRules { get; private set; }
         public static ConfigEntry<Boolean> VsyncEnabled { get; private set; }
-        public static ConfigEntry<Boolean> CapAt144 { get; private set; }
+        public static ConfigEntry<int> FramerateCap { get; private set; }
         public static ConfigEntry<Boolean> V1Drain { get; private set; }
         public static ConfigEntry<Boolean> CustomCGs { get; private set; }
 
@@ -71,10 +78,10 @@ namespace HunieMod
                 "Settings", nameof(VsyncEnabled),
                 true,
                 "Enable or disable Vsync. The FPS cap below will only take effect with it disabled");
-            CapAt144 = Config.Bind(
-                "Settings", nameof(CapAt144),
-                true,
-                "Cap the game at 144 FPS. If false, it will cap at 60 FPS instead. 144 FPS could help mash speed, but the higher framerate could mean bonus round affection drains faster (especially on Hard)");
+            FramerateCap = Config.Bind(
+                "Settings", nameof(FramerateCap),
+                144,
+                "Set your framerate cap when Vsync is off. Valid values: 60, 120, 144, 170, 240, 300, 360. Higher FPS can help max mash speed, but it also means bonus round affection drains faster (especially on Hard)");
 
             MouseWheelEnabled = Config.Bind(
                 "Settings", nameof(MouseWheelEnabled),
@@ -113,7 +120,19 @@ namespace HunieMod
             CensorshipEnabled = Config.Bind(
                 "Settings", nameof(CensorshipEnabled),
                 true,
-                "Enable or disable the censorship mods");
+                "Enable or disable the main censorship mods that make the game SFW");
+            OutfitCensorshipEnabled = Config.Bind(
+                "Settings", nameof(OutfitCensorshipEnabled),
+                false,
+                "Enable or disable risque outfits (mostly swimsuits) being replaced with default outfit");
+            BraPantiesCensorshipEnabled = Config.Bind(
+                "Settings", nameof(BraPantiesCensorshipEnabled),
+                false,
+                "Enable or disable Bonus Round bra/panties being replaced with default outfit");
+            SexSFXCensorshipEnabled = Config.Bind(
+                "Settings", nameof(SexSFXCensorshipEnabled),
+                false,
+                "Enable or disable muting girls' moans during Bonus Round");
             CustomCGs = Config.Bind(
                 "Settings", nameof(CustomCGs),
                 false,
@@ -197,10 +216,10 @@ namespace HunieMod
             if (!VsyncEnabled.Value)
             {
                 QualitySettings.vSyncCount = 0;
-                if (CapAt144.Value)
-                    Application.targetFrameRate = 144;
-                else
-                    Application.targetFrameRate = 60;
+                if (FramerateCap.Value != 60 && FramerateCap.Value != 120 && FramerateCap.Value != 144 &&
+                    FramerateCap.Value != 170 && FramerateCap.Value != 240 && FramerateCap.Value != 300 && FramerateCap.Value != 360)
+                    FramerateCap.Value = 144;
+                Application.targetFrameRate = FramerateCap.Value;
             }
 
             Harmony.CreateAndPatchAll(typeof(BasePatches), null);
@@ -252,6 +271,7 @@ namespace HunieMod
                 }
             }
             Logger.LogMessage(validKeycodes);
+            if (GameVersion() == JAN23) RunTimer.categories[RunTimer.HUNDREDPERCENT] = "100% (Jan. 23)";
         }
 
         public static int GameVersion()

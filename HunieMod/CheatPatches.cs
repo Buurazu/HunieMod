@@ -341,6 +341,12 @@ namespace HunieMod
                         GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Hairstyle and outfit preferences saved!");
                     }
                 }
+
+                if (Input.GetMouseButtonDown(1))
+                {
+                    if (GameManager.System.GameState == GameState.PUZZLE && highlightedToken != null)
+                        ChangeTokenType(ref highlightedToken, GameManager.System.Puzzle.Game);
+                }
             }
         }
 
@@ -349,6 +355,7 @@ namespace HunieMod
             List<UIGirlItemSlot> slots = (List<UIGirlItemSlot>)AccessTools.Field(typeof(UIGirl), "_itemSlots").GetValue(GameManager.Stage.uiGirl);
             foreach (UIGirlItemSlot slot in slots)
             {
+                if (slot.itemDefinition == null) continue;
                 if (slot.itemDefinition.type == ItemType.GIFT || slot.itemDefinition.type == ItemType.FOOD || slot.itemDefinition.type == ItemType.DRINK)
                     slot.ConsumeSlotItem();
             }
@@ -356,6 +363,7 @@ namespace HunieMod
             InventoryItemPlayerData[] inventory = (InventoryItemPlayerData[])AccessTools.Field(typeof(PlayerManager), "_inventory").GetValue(GameManager.System.Player);
             foreach (InventoryItemPlayerData slot in inventory)
             {
+                if (slot.itemDefinition == null) continue;
                 if (slot.presentDefinition != null || slot.itemDefinition.type == ItemType.GIFT || slot.itemDefinition.type == ItemType.FOOD || slot.itemDefinition.type == ItemType.DRINK)
                     slot.itemDefinition = null;
             }
@@ -391,7 +399,8 @@ namespace HunieMod
             CheatPatches.AddItem(142); CheatPatches.AddItem(143); CheatPatches.AddItem(144);
 
             CheatPatches.AddItem("Suede Ankle Booties"); CheatPatches.AddItem("Leopard Print Pumps"); CheatPatches.AddItem("Shiny Lipstick");
-            CheatPatches.AddItem("Pearl Necklace"); CheatPatches.AddItem("Stuffed Penguin"); CheatPatches.AddItem("Stuffed Whale");
+            CheatPatches.AddItem("Heart Necklace"); CheatPatches.AddItem("Pearl Necklace");
+            CheatPatches.AddItem("Stuffed Penguin"); CheatPatches.AddItem("Stuffed Whale");
             GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Fantastic date gifts added to inventory");
         }
 
@@ -506,6 +515,28 @@ namespace HunieMod
         }
 
         public static bool skipThisSetProcess = false;
+        public static PuzzleToken highlightedToken;
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PuzzleToken), "HighlightToken")]
+        public static void SaveHighlightedToken(PuzzleToken __instance)
+        {
+            highlightedToken = __instance;
+        }
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PuzzleToken), "UnhighlightToken")]
+        public static void DeleteHighlightedToken(PuzzleToken __instance)
+        {
+            if (__instance == highlightedToken)
+                highlightedToken = null;
+        }
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(UITop), "OnHuniebeeButtonPress")]
+        public static bool PreventHuniebeeOnTokenChange()
+        {
+            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) && highlightedToken != null)
+                return false;
+            return true;
+        }
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PuzzleGame), "StartTokenMove")]
         public static bool ChangeTokenType(ref PuzzleToken token, PuzzleGame __instance)
@@ -522,8 +553,16 @@ namespace HunieMod
                 for (int i = 0; i < tokenNames.Length; i++)
                 {
                     if (tokenNames[i] + " Token" == token.definition.name) {
-                        i++;
-                        if (i == tokenNames.Length) i = 0;
+                        if (Input.GetMouseButton(0))
+                        {
+                            i++;
+                            if (i == tokenNames.Length) i = 0;
+                        }
+                        else if (Input.GetMouseButton(1))
+                        {
+                            i--;
+                            if (i < 0) i = tokenNames.Length - 1;
+                        }
                         int newLevel = 1;
                         if (i < 4) newLevel = token.level;
                         List<PuzzleTokenDefinition> newDef = new List<PuzzleTokenDefinition>() { orderedTokens[i] };

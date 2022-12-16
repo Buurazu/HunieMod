@@ -31,6 +31,7 @@ namespace HunieMod
         public static bool replacingText = false;
         public static int startingCompletedGirls = 0;
         public static int startingRelationship = 0;
+        public static bool dateIsProgress = false;
 
         public static bool titleScreenInteractive = true;
 
@@ -42,6 +43,44 @@ namespace HunieMod
             if (BaseHunieModPlugin.cheatsEnabled) GameUtil.ShowNotification(CellNotificationType.MESSAGE, "CHEATS ARE ENABLED");
             else if (BaseHunieModPlugin.hasReturned) GameUtil.ShowNotification(CellNotificationType.MESSAGE, "This is for practice purposes only");
         }
+
+        public static void CheckFor100Complete()
+        {
+            RunTimer run = BaseHunieModPlugin.run;
+            if (run == null) return;
+            //checking for 100% completion
+            if (run.goal == 100)
+            {
+                //SteamUtils.CheckPercentCompleteAchievement() recreation
+                int num = 0;
+                if (GameManager.System.Player.girls != null && GameManager.System.Player.girls.Count > 0)
+                {
+                    for (int i = 0; i < GameManager.System.Player.girls.Count; i++)
+                    {
+                        GirlPlayerData girlPlayerData = GameManager.System.Player.girls[i];
+                        if (girlPlayerData.gotPanties && girlPlayerData.DetailKnownCount() == 12 && girlPlayerData.ItemCollectionCount() == 24 && girlPlayerData.UnlockedOutfitsCount() == 5)
+                        {
+                            num++;
+                        }
+                        else return;
+                    }
+                }
+                if (num == 12)
+                {
+                    GameUtil.ShowNotification(CellNotificationType.MESSAGE, "100% complete! Time: " + RunTimer.convert(TimeSpan.FromTicks(DateTime.UtcNow.Ticks - run.runTimer)));
+                    run.split();
+                    string newSplit = "100%\n      " + run.splitText + "\n";
+                    run.push(newSplit);
+                    run.save();
+                    //run.goal should no longer be 100% now, so this will only execute once
+                }
+            }
+        }
+        [HarmonyPostfix] [HarmonyPatch(typeof(GirlPlayerData), "KnowDetail")] public static void KnowDetail100() { CheckFor100Complete(); }
+        [HarmonyPostfix] [HarmonyPatch(typeof(GirlPlayerData), "UnlockOutfit")] public static void UnlockOutfit100() { CheckFor100Complete(); }
+        [HarmonyPostfix] [HarmonyPatch(typeof(GirlPlayerData), "AddPhotoEarned")] public static void AddPhoto100() { CheckFor100Complete(); }
+        [HarmonyPostfix] [HarmonyPatch(typeof(GirlPlayerData), "AddItemToUniqueGifts")] public static void AddUnique100() { CheckFor100Complete(); }
+        [HarmonyPostfix] [HarmonyPatch(typeof(GirlPlayerData), "AddItemToCollection")] public static void AddCollection100() { CheckFor100Complete(); }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
@@ -66,7 +105,11 @@ namespace HunieMod
                 }
                 startingCompletedGirls = GameManager.System.Player.GetTotalMaxRelationships();
                 startingRelationship = GameManager.System.Player.GetGirlData(GameManager.Stage.girl.definition).relationshipLevel;
-                //Logger.LogMessage(GameManager.System.Player.GetTotalMaxRelationships() + "," + GameManager.System.Player.GetTotalGirlsRelationshipLevel());
+                dateIsProgress = false;
+                // The date will cause progress if our relationship is under 5, or it's a panties-grabbing bonus round
+                if (startingRelationship < 5 || (____isBonusRound && !GameManager.System.Player.GetGirlData(GameManager.Stage.girl.definition).gotPanties))
+                    dateIsProgress = true;
+                    //Logger.LogMessage(GameManager.System.Player.GetTotalMaxRelationships() + "," + GameManager.System.Player.GetTotalGirlsRelationshipLevel());
                 //auto category detection
                 if (run != null && !BaseHunieModPlugin.cheatsEnabled && BaseHunieModPlugin.lastChosenCategory == RunTimer.ANYCATEGORY && GameManager.System.Player.tutorialComplete)
                 {
@@ -145,7 +188,7 @@ namespace HunieMod
                 {
                     bool didSplit = false;
                     //don't split for dates in postgame
-                    if (startingCompletedGirls < 12 || run.category == "")
+                    if (dateIsProgress || run.category == "")
                     {
                         //check our rules
                         if (run.goal <= 2 || BaseHunieModPlugin.SplitRules.Value <= 0) didSplit = run.split(____isBonusRound);
@@ -191,6 +234,7 @@ namespace HunieMod
                 splitThisDate = false;
             }
         }
+
         /*
         [HarmonyPrefix]
         [HarmonyPatch(typeof(DialogManager), "DialogSceneStep")]
@@ -300,7 +344,9 @@ namespace HunieMod
 
             //Logger.LogDebug("dialog update: " + ____proceedToNextStep.ToString() + "," + ____activeDialogScene.ToString());
         }
-        
+        */
+
+        /*
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
         public static void TestingDrain(PuzzleGame __instance, bool ____isBonusRound, float ____bonusRoundDrainTimestamp, float ____bonusRoundDrainDelay, int ____currentAffection)
@@ -426,10 +472,8 @@ namespace HunieMod
             string newText2 = "";
             if (BaseHunieModPlugin.VsyncEnabled.Value)
                 newText2 += "Vsync On (" + Screen.currentResolution.refreshRate + ")";
-            else if (BaseHunieModPlugin.CapAt144.Value)
-                newText2 += "144 FPS Lock";
             else
-                newText2 += "60 FPS Lock";
+                newText2 += BaseHunieModPlugin.FramerateCap.Value + " FPS Lock";
 
             if (BaseHunieModPlugin.V1Drain.Value && version == 0)
                 newText2 += ", V1.0 Drain";
@@ -633,6 +677,102 @@ namespace HunieMod
         {
             if (styles == "8,13") styles = "";
         }
+
+        /*
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(GirlManager), "TalkWithHer")]
+        public static void TestingTalking()
+        {
+
+            Girl ____activeGirl = GameManager.Stage.girl;
+
+            Logger.LogMessage("hi");
+            GirlPlayerData girlData = GameManager.System.Player.GetGirlData(____activeGirl.definition);
+            //List<int> collection = (List<int>)AccessTools.Field(typeof(GirlPlayerData), "_collection").GetValue(girlData);
+            //collection.RemoveAt(5);
+            bool[] details = (bool[])AccessTools.Field(typeof(GirlPlayerData), "_details").GetValue(girlData);
+            details[1] = false;
+
+            List<DialogSceneDefinition> list = new List<DialogSceneDefinition>();
+            for (int i = 0; i < ____activeGirl.definition.talkQueries.Count; i++)
+            {
+                if (GameManager.System.GameLogic.GameConditionsMet(____activeGirl.definition.talkQueries[i].conditions, false))
+                {
+                    list.Add(____activeGirl.definition.talkQueries[i]);
+                    list.Add(____activeGirl.definition.talkQueries[i]);
+                    list.Add(____activeGirl.definition.talkQueries[i]);
+                    if (girlData.gotPanties && GameManager.System.Player.endingSceneShown)
+                    {
+                        list.Add(____activeGirl.definition.talkQueries[i]);
+                        list.Add(____activeGirl.definition.talkQueries[i]);
+                        list.Add(____activeGirl.definition.talkQueries[i]);
+                    }
+                }
+            }
+            for (int j = 0; j < ____activeGirl.definition.talkQuizzes.Count; j++)
+            {
+                if (GameManager.System.GameLogic.GameConditionsMet(____activeGirl.definition.talkQuizzes[j].conditions, true) && !girlData.IsRecentQuiz(j))
+                {
+                    list.Add(____activeGirl.definition.talkQuizzes[j]);
+                }
+            }
+            for (int k = 0; k < ____activeGirl.definition.talkQuestions.Count; k++)
+            {
+                if (GameManager.System.GameLogic.GameConditionsMet(____activeGirl.definition.talkQuestions[k].conditions, true) && !girlData.IsRecentQuestion(k))
+                {
+                    list.Add(____activeGirl.definition.talkQuestions[k]);
+                }
+            }
+
+            Logger.LogMessage("hi 2");
+            foreach (DialogSceneDefinition d in list)
+            {
+                //Logger.LogMessage(d.steps[0].messageDef.messageText);
+                foreach (DialogSceneStep ds in d.steps)
+                {
+                    if (ds.responseOptions != null)
+                    {
+                        foreach (DialogSceneResponseOption dsr in ds.responseOptions)
+                        {
+                            Logger.LogMessage(dsr.text);
+                        }
+                    }
+                }
+                Logger.LogMessage(d.id.ToString());
+            }
+
+            foreach (GirlDefinition girl in HunieMod.Definitions.Girls)
+            {
+                Logger.LogMessage(girl.firstName);
+                foreach (DialogSceneDefinition d in girl.talkQuestions)
+                {
+                    foreach (GameCondition gc in d.conditions)
+                    {
+                        Logger.LogMessage(gc.type.ToString());
+                        if (gc.girlDefinition != null) Logger.LogMessage(gc.girlDefinition.firstName);
+                        if (gc.locationDefinition != null) Logger.LogMessage(gc.locationDefinition.fullName);
+                        if (gc.girlDetailType != null) Logger.LogMessage(gc.girlDetailType.ToString());
+                        if (gc.relationshipLevel != null) Logger.LogMessage(gc.relationshipLevel.ToString());
+                        if (gc.metStatus != null) Logger.LogMessage(gc.metStatus.ToString());
+
+                        foreach (DialogSceneStep ds in d.steps)
+                        {
+                            if (ds.responseOptions != null)
+                            {
+                                foreach (DialogSceneResponseOption dsr in ds.responseOptions)
+                                {
+                                    Logger.LogMessage(dsr.text);
+                                }
+                            }
+                        }
+                        Logger.LogMessage(d.id.ToString());
+                    }
+                    //Logger.LogMessage(d.steps[0].messageDef.messageText);
+                    
+                }
+            }
+        }
+        */
 
         /*[HarmonyPrefix]
         [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]

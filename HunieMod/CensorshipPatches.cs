@@ -88,6 +88,70 @@ namespace HunieMod
             }
         }
 
+        //define inappropriate outfits for each character
+        //Girl IDs start at 1, be careful
+        public static int[][] lewdOutfits =
+        {
+            //Tiffany
+            new int[] { 3, 4 },
+            //Aiko
+            new int[] { 4 },
+            //Kyanna
+            new int[] { 4 },
+            //Audrey
+            new int[] { 4 },
+            //Lola
+            new int[] { 4 },
+            //Nikki
+            new int[] { 4 },
+            //Jessie
+            new int[] { 1, 4 },
+            //Beli
+            new int[] { 4 },
+            //Kyu
+            new int[] { 4 },
+            //Momo
+            new int[] { 4 },
+            //Celeste
+            new int[] { 1, 2, 3, 4 },
+            //Venus
+            new int[] { 1, 2, 3, 4 }
+        };
+
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Girl), "AddGirlPiece")]
+        public static void CensorLewdOutfits(ref GirlPiece girlPiece, Girl __instance)
+        {
+            if (!BaseHunieModPlugin.OutfitCensorshipEnabled.Value) return;
+            foreach (int i in lewdOutfits[__instance.definition.id - 1])
+            {
+                if ("outfit_" + (i+1) == girlPiece.art[0].spriteName)
+                {
+                    girlPiece = __instance.definition.pieces[13];
+                    break;
+                }
+            }
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Girl), "ShowGirl")]
+        public static void CensorBraPanties(Girl __instance, GirlDefinition girlDefinition)
+        {
+            if (BaseHunieModPlugin.BraPantiesCensorshipEnabled.Value && GameManager.System.Location.currentLocation.bonusRoundLocation)
+                __instance.ChangeStyle(girlDefinition.outfits[0].artIndex, true);
+        }
+
+        // mute sex SFX
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(AudioManager), "Play", typeof(AudioCategory), typeof(AudioDefinition), typeof(bool), typeof(float), typeof(bool))]
+        public static void SilenceTheMoans(AudioDefinition audioDefinition, ref float volume)
+        {
+            if (!BaseHunieModPlugin.SexSFXCensorshipEnabled.Value || audioDefinition == null || audioDefinition.clip == null) return;
+            if (audioDefinition.clip.name.Contains("sexual") && audioDefinition.clip.name != "puzzle_token_match_sexual")
+                volume = 0f;
+        }
+
         //Keep that bra on
         [HarmonyPrefix]
         [HarmonyPatch(typeof(Girl), "HideBra")]

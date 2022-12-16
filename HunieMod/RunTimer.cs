@@ -426,8 +426,8 @@ namespace HunieMod
                     string target = "splits/data/" + category + " Dates.txt"; string target2 = "splits/data/" + category + " Bonuses.txt";
                     if (File.Exists(target) && File.Exists(target2))
                     {
-                        //saved comparison is longer than our new one
-                        if (TimeSpan.Parse(GetPB(category, false)) > splits[splits.Count - 1])
+                        //saved comparison is longer than our new one (or zero, for some reason)
+                        if (TimeSpan.Parse(GetPB(category, false)) > splits[splits.Count - 1] || TimeSpan.Parse(GetPB(category, false)) == TimeSpan.Zero)
                         {
                             File.WriteAllLines(target, splitsToStrings(false));
                             File.WriteAllLines(target2, splitsToStrings(true));

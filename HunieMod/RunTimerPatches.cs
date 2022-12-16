@@ -18,9 +18,30 @@ namespace HunieMod
         public static Stopwatch savePBDelay = new Stopwatch();
         public static float simTime = 0;
         public static float dateTime = 0;
+        public static int munieEarned = 0;
+        public static long startTime = 0;
         public static bool isBonusRound = false;
 
         public static bool preventAllUpdate = false;
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(PuzzleManager), "OnJackpotRolledUp")]
+        public static void CheckMunieEarnedPre(ref int __state)
+        {
+            __state = GameManager.System.Player.money;
+        }
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PuzzleManager), "OnJackpotRolledUp")]
+        public static void CheckMunieEarnedPost(int __state)
+        {
+            int munieThisDate = GameManager.System.Player.money - __state;
+            munieEarned += munieThisDate;
+            
+            BasePatches.Logger.LogMessage("Munie Earned: " + munieThisDate + ", Total Munie Earned: " + munieEarned);
+            long tickDiff = DateTime.UtcNow.Ticks - startTime;
+            string formatted = String.Format("Time: " + RunTimer.convert(TimeSpan.FromTicks(tickDiff)) + ", Munie Per Minute: {0:0.##}", (munieEarned / TimeSpan.FromTicks(tickDiff).TotalMinutes));
+            BasePatches.Logger.LogMessage(formatted);
+        }
 
         public static void Update()
         {
@@ -32,16 +53,6 @@ namespace HunieMod
                 simTime += Time.deltaTime;
             else if (GameManager.System.GameState == GameState.PUZZLE)
                 dateTime += Time.deltaTime;
-
-            //checking criterias for non-Wing categories
-            if (run.goal == 100 && GameManager.System.SaveFile != null && GameManager.System.SaveFile.GetPercentComplete() == 100)
-            {
-                run.split();
-                string newSplit = "100%\n      " + run.splitText + "\n";
-                run.push(newSplit);
-                run.save();
-                //run.goal should no longer be 100% now, so this will only execute once
-            }
 
             int goalMillis = 1000;
             //lower milliseconds before stats show in bonus rounds, because it fades away too quick
@@ -157,7 +168,7 @@ namespace HunieMod
                 BaseHunieModPlugin.run = new RunTimer();
             }
 
-            simTime = 0; dateTime = 0;
+            simTime = 0; dateTime = 0; munieEarned = 0; startTime = DateTime.UtcNow.Ticks;
         }
         
         [HarmonyPostfix]
@@ -211,5 +222,6 @@ namespace HunieMod
                 BaseHunieModPlugin.run.refresh();
             }
         }
+
     }
 }
