@@ -65,6 +65,7 @@
     <Compile Include="BaseHunieModPlugin.cs" />
     <Compile Include="BasePatches.cs" />
     <Compile Include="CensorshipPatches.cs" />
+    <Compile Include="RNGPatches.cs" />
     <Compile Include="CheatPatches.cs" />
     <Compile Include="Data\Definitions.cs" />
     <Compile Include="Enums\LocationId.cs" />

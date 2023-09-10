@@ -23,7 +23,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "3.5.3";
+        public const string PluginVersion = "4.1";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -46,6 +46,7 @@ namespace HunieMod
         public static ConfigEntry<int> FramerateCap { get; private set; }
         public static ConfigEntry<Boolean> V1Drain { get; private set; }
         public static ConfigEntry<Boolean> CustomCGs { get; private set; }
+        public static ConfigEntry<int> NikkisGlasses { get; private set; }
 
         public static Dictionary<string, ConfigEntry<int>> hairstylePreferences = new Dictionary<string, ConfigEntry<int>>();
         public static Dictionary<string,ConfigEntry<int>> outfitPreferences = new Dictionary<string, ConfigEntry<int>>();
@@ -68,12 +69,21 @@ namespace HunieMod
         public static int lastChosenDifficulty = 0;
         public static int swimsuitsChosen = 0;
 
+        public static bool seedMode = false;
+        public static string seedString = "";
+        public static string defaultSeed = "";
+
         public static Dictionary<string, SpriteObject> customCG4 = new Dictionary<string, SpriteObject>();
         public static Dictionary<string, AudioClip> climaxSFX = new Dictionary<string, AudioClip>();
         public static Dictionary<string, AudioClip> customSFX = new Dictionary<string, AudioClip>();
 
         private void Awake()
         {
+            NikkisGlasses = Config.Bind(
+                "Settings", nameof(NikkisGlasses),
+                2,
+                "It was requested, idk\n0 = never show Nikki's glasses, 1 = always show Nikki's glasses, 2 = don't do anything");
+
             VsyncEnabled = Config.Bind(
                 "Settings", nameof(VsyncEnabled),
                 true,
@@ -251,6 +261,7 @@ namespace HunieMod
             if (CensorshipEnabled.Value) Harmony.CreateAndPatchAll(typeof(CensorshipPatches), null);
             Harmony.CreateAndPatchAll(typeof(InputPatches), null);
             if (InGameTimer.Value) Harmony.CreateAndPatchAll(typeof(RunTimerPatches), null);
+            Harmony.CreateAndPatchAll(typeof(RNGPatches), null);
 
             string both = MouseKeys.Value + "," + ControllerKeys.Value;
             string[] keys = both.Split(',');
@@ -349,6 +360,8 @@ namespace HunieMod
 
         private void Update() // Another Unity method
         {
+            //BasePatches.Logger.LogMessage(BaseHunieModPlugin.seedMode.ToString() + " " + BaseHunieModPlugin.seedString.ToString() + " " + BaseHunieModPlugin.defaultSeed.ToString());
+
             /*if (BaseHunieModPlugin.run == null)
                 Logger.LogMessage("null");
             else
@@ -373,7 +386,7 @@ namespace HunieMod
                 }
                 if (Input.GetKeyDown(KeyCode.UpArrow))
                 {
-                    lastChosenDifficulty--; if (lastChosenDifficulty < 0) lastChosenDifficulty = RunTimer.difficulties.Length-1;
+                    lastChosenDifficulty--; if (lastChosenDifficulty < 0) lastChosenDifficulty = RunTimer.difficulties.Length - 1;
                     updateText = true;
                 }
                 if (Input.GetKeyDown(KeyCode.RightArrow))
@@ -401,6 +414,55 @@ namespace HunieMod
                     cheatsEnabled = true;
                     if (CheatSpeedEnabled.Value) GameManager.System.Hook.skipTransitionScreen = true;
                 }
+
+                //Read minus, numbers, and backspace input for the seed string
+                if (seedMode)
+                {
+                    if (Input.GetKeyDown(KeyCode.Backspace) && seedString != "")
+                    {
+                        seedString = seedString.Remove(seedString.Length - 1, 1);
+                    }
+                    for (int i = 0; i <= 9; i++)
+                    {
+                        if (Input.GetKeyDown(KeyCode.Alpha0 + i))
+                        {
+                            string temp = seedString + i.ToString();
+                            long temp2 = long.Parse(temp);
+                            if (temp2 < int.MaxValue)
+                                seedString = temp;
+                        }
+                    }
+                    string seedText = "Seed: ";
+                    if (seedString != "") seedText += seedString;
+                    else seedText += defaultSeed;
+                    BasePatches.seedText.SetText(seedText);
+                }
+                else
+                {
+                    BasePatches.seedText.SetText("");
+                }
+                if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+                {
+                    //seed mode Ctrl+S (default to a syncable one)
+                    if (Input.GetKeyDown(KeyCode.S))
+                    {
+                        {
+                            seedMode = !seedMode;
+                            if (seedMode)
+                            {
+                                RunTimer.difficulties = new string[] { "Any (Seeded)", "Easy (Seeded)", "Normal (Seeded)", "Hard (Seeded)" };
+                            }
+                            else
+                            {
+                                RunTimer.difficulties = new string[] { "Any Difficulty", "Easy", "Normal", "Hard" };
+                            }
+                            RunTimerPatches.UpdateFiles();
+                            //give us a random seed based on the current minute, to help syncing races
+                            int seed = new System.Random((int)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMinute)).Next();
+                            defaultSeed = seed.ToString();
+                        }
+                    }
+                }
             }
 
             if (ResetKey.Value.IsDown() || ResetKey2.Value.IsDown())
@@ -423,11 +485,12 @@ namespace HunieMod
                 }
             }
 
-            //display the splits folder on Ctrl+S
+            
+
             if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
             {
-                //display the splits folder on Ctrl+S
-                if (Input.GetKeyDown(KeyCode.S))
+                //display the splits folder on Ctrl+F for folder I guess idk
+                if (Input.GetKeyDown(KeyCode.F))
                 {
                     if (GameManager.System.GameState == GameState.TITLE)
                         System.Diagnostics.Process.Start(Directory.GetCurrentDirectory() + "/splits");

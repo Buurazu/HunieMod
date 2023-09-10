@@ -27,6 +27,7 @@ namespace HunieMod
         public static PuzzleTokenDefinition[] savedBoard = new PuzzleTokenDefinition[56];
         public static int savedAffection, savedPassion, savedMoves, savedSentiment;
         public static Dictionary<PuzzleTokenDefinition, int> savedWeights = new Dictionary<PuzzleTokenDefinition, int>();
+        public static bool refreshingPuzzle = false;
 
         public static void Update()
         {
@@ -91,6 +92,10 @@ namespace HunieMod
                     else
                     */
                     {
+                        if (!Input.GetKey(KeyCode.LeftControl) && !Input.GetKey(KeyCode.RightControl))
+                        {
+                            refreshingPuzzle = true;
+                        }
                         GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Restarting the date!");
                         GameManager.Stage.uiPuzzle.puzzleStatus.UpdatePuzzleEffects(null);
                         AccessTools.Method(typeof(PuzzleManager), "HidePuzzleGrid").Invoke(GameManager.System.Puzzle, null);
@@ -401,6 +406,7 @@ namespace HunieMod
             CheatPatches.AddItem("Suede Ankle Booties"); CheatPatches.AddItem("Leopard Print Pumps"); CheatPatches.AddItem("Shiny Lipstick");
             CheatPatches.AddItem("Heart Necklace"); CheatPatches.AddItem("Pearl Necklace");
             CheatPatches.AddItem("Stuffed Penguin"); CheatPatches.AddItem("Stuffed Whale");
+            CheatPatches.AddItem("Compact Mirror");
             GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Fantastic date gifts added to inventory");
         }
 
@@ -471,6 +477,11 @@ namespace HunieMod
                 GameManager.System.Player.money = 1000;
                 CheatPatches.AddItem("Stuffed Bear",GameManager.System.Player.dateGifts);
                 AddGreatGiftsToInventory();
+                if (RNGPatches.dateRandom != null)
+                {
+                    RNGPatches.dateRandom.Next();
+                    RNGPatches.dateRandom.Next();
+                } 
 
             }
             if (!unlockedEverything)

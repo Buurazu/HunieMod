@@ -24,6 +24,7 @@ namespace HunieMod
         public static LabelObject currentDifficulty;
         public static LabelObject PBtext;
         public static LabelObject SOBtext;
+        public static LabelObject seedText;
 
         public static BepInEx.Logging.ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("BasePatches");
 
@@ -383,25 +384,39 @@ namespace HunieMod
             }
         }
 
+        public static void ThingsToDoWhenGameStarts()
+        {
+            titleScreenInteractive = false;
+            if (BaseHunieModPlugin.seedMode)
+            {
+                if (BaseHunieModPlugin.seedString != "") RNGPatches.InitializeRNG(int.Parse(BaseHunieModPlugin.seedString));
+                else RNGPatches.InitializeRNG(int.Parse(BaseHunieModPlugin.defaultSeed));
+            }
+            else
+            {
+                RNGPatches.WipeRNG();
+            }
+        }
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LoadScreen), "OnStartGameMale")]
         public static void MaleStart()
         {
-            titleScreenInteractive = false;
+            ThingsToDoWhenGameStarts();
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LoadScreen), "OnStartGameFemale")]
         public static void FemaleStart()
         {
-            titleScreenInteractive = false;
+            ThingsToDoWhenGameStarts();
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LoadScreen), "OnContinueGame")]
         public static void ContinueGame(ref int saveFileIndex)
         {
-            titleScreenInteractive = false;
+            ThingsToDoWhenGameStarts();
         }
 
         [HarmonyPrefix]
@@ -462,7 +477,7 @@ namespace HunieMod
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LoadScreen), "Init")]
-        public static void UpdateButton(LoadScreen __instance, ref SpriteObject ____creditsButton, ref UICellApp ____settingsCellApp)
+        public static void UpdateButtonAndVersionInfo(LoadScreen __instance, ref SpriteObject ____creditsButton, ref UICellApp ____settingsCellApp)
         {
             //add mod version and settings info to the corner (or just edit the text if on Valentine's)
             int version = BaseHunieModPlugin.GameVersion(); //0 = jan23, 1 = valentines
@@ -526,6 +541,7 @@ namespace HunieMod
                 currentCategory = UnityEngine.Object.Instantiate(__instance.saveFiles[0].dataLocationLabel) as LabelObject;
                 PBtext = UnityEngine.Object.Instantiate(__instance.saveFiles[0].dataLocationLabel) as LabelObject;
                 SOBtext = UnityEngine.Object.Instantiate(__instance.saveFiles[0].dataLocationLabel) as LabelObject;
+                seedText = UnityEngine.Object.Instantiate(__instance.saveFiles[0].dataLocationLabel) as LabelObject;
                 int ypos = 155; int yoffset = 20;
                 int xpos = 600; int offset = 85; int diff = 120;
                 //centered vertically, large difference horizontally
@@ -544,6 +560,8 @@ namespace HunieMod
                 InitializeOurThing(rightArrow2, ourContainer, xpos + diff, ypos - yoffset);
                 InitializeOurThing(PBtext, ourContainer, xpos - offset - 5, ypos - yoffset * 3);
                 InitializeOurThing(SOBtext, ourContainer, xpos + offset - 5, ypos - yoffset * 3);
+                InitializeOurThing(seedText, ourContainer, xpos + offset * 4 - 5, ypos);
+                seedText.SetText("");
                 SOBtext.label.color = new Color(221 / 256f, 175 / 256f, 76 / 256f, 0);
                 currentDifficulty.SetText(RunTimer.difficulties[BaseHunieModPlugin.lastChosenDifficulty]);
                 currentCategory.SetText(RunTimer.categories[BaseHunieModPlugin.lastChosenCategory]);

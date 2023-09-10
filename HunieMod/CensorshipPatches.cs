@@ -134,6 +134,24 @@ namespace HunieMod
             }
         }
 
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Girl), "ShowGirl")]
+        public static void NikkiGlassesSetting(Girl __instance, GirlDefinition girlDefinition)
+        {
+            if (girlDefinition.firstName == "Nikki")
+            {
+                List<GirlPiece> piecesByType = girlDefinition.GetPiecesByType(GirlPieceType.EXTRA);
+                if (BaseHunieModPlugin.NikkisGlasses.Value == 0)
+                {
+                    piecesByType[0].showChance = 0;
+                }
+                else if (BaseHunieModPlugin.NikkisGlasses.Value == 1) {
+                    piecesByType[0].hideOnDates = false;
+                    piecesByType[0].underwear = true;
+                }
+            }
+        }
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(Girl), "ShowGirl")]
         public static void CensorBraPanties(Girl __instance, GirlDefinition girlDefinition)

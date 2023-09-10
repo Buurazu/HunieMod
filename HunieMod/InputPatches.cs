@@ -37,9 +37,12 @@ namespace HunieMod
                     if (Mathf.Abs(Input.GetAxisRaw("Axis " + i)) > DEADZONE && Mathf.Abs(prevAxises[i]) <= DEADZONE) return true;
                 }
             }
-            for (int i = 0; i < mouseKeyboardKeys.Count; i++)
+            if (GameManager.System.GameState != GameState.TITLE)
             {
-                if (Input.GetKeyDown(mouseKeyboardKeys[i])) return true;
+                for (int i = 0; i < mouseKeyboardKeys.Count; i++)
+                {
+                    if (Input.GetKeyDown(mouseKeyboardKeys[i])) return true;
+                }
             }
             return false;
         }
@@ -55,9 +58,12 @@ namespace HunieMod
                     if (Mathf.Abs(Input.GetAxisRaw("Axis " + i)) <= DEADZONE && Mathf.Abs(prevAxises[i]) > DEADZONE) return true;
                 }
             }
-            for (int i = 0; i < mouseKeyboardKeys.Count; i++)
+            if (GameManager.System.GameState != GameState.TITLE)
             {
-                if (Input.GetKeyUp(mouseKeyboardKeys[i])) return true;
+                for (int i = 0; i < mouseKeyboardKeys.Count; i++)
+                {
+                    if (Input.GetKeyUp(mouseKeyboardKeys[i])) return true;
+                }
             }
             return false;
         }
@@ -73,9 +79,12 @@ namespace HunieMod
                     if (Mathf.Abs(Input.GetAxisRaw("Axis " + i)) > DEADZONE) return true;
                 }
             }
-            for (int i = 0; i < mouseKeyboardKeys.Count; i++)
+            if (GameManager.System.GameState != GameState.TITLE)
             {
-                if (Input.GetKey(mouseKeyboardKeys[i])) return true;
+                for (int i = 0; i < mouseKeyboardKeys.Count; i++)
+                {
+                    if (Input.GetKey(mouseKeyboardKeys[i])) return true;
+                }
             }
             return false;
         }

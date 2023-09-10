@@ -134,6 +134,13 @@ namespace HunieMod
 
         public RunTimer()
         {
+            //check for Love Potions
+            CheatData cheatData = SaveUtils.LoadCheatData();
+            if (cheatData != null && cheatData.lovePotionCount > 0)
+            {
+                difficulties = new string[] { "Any Difficulty", "P2W Easy", "P2W Normal", "P2W Hard" };
+            }
+
             //no new file, so it's just practice
             runFile = -1;
             category = "";
