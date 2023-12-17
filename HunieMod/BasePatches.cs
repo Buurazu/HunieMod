@@ -83,6 +83,67 @@ namespace HunieMod
         [HarmonyPostfix] [HarmonyPatch(typeof(GirlPlayerData), "AddItemToUniqueGifts")] public static void AddUnique100() { CheckFor100Complete(); }
         [HarmonyPostfix] [HarmonyPatch(typeof(GirlPlayerData), "AddItemToCollection")] public static void AddCollection100() { CheckFor100Complete(); }
 
+        //handle starting Goon% and Intro%
+        public static bool startingGooning = false;
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(LocationManager), "TravelTo")]
+        public static bool StartGooning()
+        {
+            if (startingGooning) return true;
+            RunTimer run = BaseHunieModPlugin.run;
+            LocationDefinition bedroom = Definitions.GetLocation(HunieMod.LocationId.BedroomBonus);
+
+            LocationDefinition introLocation = GameManager.Data.Locations.Get(BaseHunieModPlugin.IntroLocation.Value);
+            if (run != null && !run.finishedRun) {
+                if (run.chosenCategory == RunTimer.GOON)
+                {
+                    GameManager.System.Player.settingsDifficulty = (SettingsDifficulty)(run.chosenDifficulty - 1);
+                    GameManager.System.Player.tutorialComplete = true;
+                    GameManager.System.Player.cellphoneUnlocked = true;
+                    AccessTools.Field(typeof(UITop), "_cellButtonDisabled").SetValue(GameManager.Stage.uiTop, false);
+                    GameManager.Stage.uiTop.buttonHuniebee.button.Enable();
+                    GameManager.Stage.uiTop.buttonHuniebee.SetAlpha(1);
+
+                    //randomly choose goon target
+                    GirlDefinition goonGirl = Definitions.GetGirl(GirlId.Kyu);
+                    if (BaseHunieModPlugin.goonChoice != -1) goonGirl = Definitions.Girls[BaseHunieModPlugin.goonChoice];
+                    else
+                    {
+                        List<GirlDefinition> girls = new List<GirlDefinition>();
+                        for (int i = 0; i < Definitions.Girls.Count; i++)
+                        {
+                            GirlDefinition g = Definitions.Girls[i];
+                            if (BaseHunieModPlugin.goonPreferences[g.firstName].Value) girls.Add(g);
+                        }
+                        if (girls.Count > 0)
+                        {
+                            ListUtils.Shuffle<GirlDefinition>(girls);
+                            goonGirl = girls[0];
+                        }
+                    }
+                    foreach (GirlPlayerData girlData in GameManager.System.Player.girls)
+                    {
+                        girlData.metStatus = GirlMetStatus.MET;
+                        girlData.dayDated = true;
+                    }
+                    startingGooning = true;
+                    GameManager.System.Puzzle.TravelToPuzzleLocation(bedroom, goonGirl);
+                    startingGooning = false;
+                    return false;
+                }
+                else if (run.chosenCategory == RunTimer.INTRO)
+                {
+                    GameManager.System.Location.currentLocation = Definitions.GetLocation(LocationId.Bedroom);
+                    GameManager.System.Player.tutorialStep = 1;
+                    startingGooning = true;
+                    GameManager.System.Puzzle.TravelToPuzzleLocation(introLocation, Definitions.GetGirl(GirlId.Kyu));
+                    startingGooning = false;
+                    return false;
+                }
+            }
+            return true;
+        }
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
         public static void AutosplitHelp(PuzzleGame __instance, ref int ____goalAffection, ref bool ____victory, ref bool ____isBonusRound)
@@ -98,7 +159,7 @@ namespace HunieMod
                         Logger.LogMessage("Insane amount of swimsuits detected");
                         run.push("WARNING! This runner is extremely horny!\n\n");
                     }
-                    if (run.chosenCategory == RunTimer.INTRO && !run.finishedRun && ____goalAffection < 10000)
+                    if ((run.chosenCategory == RunTimer.INTRO || run.chosenCategory == RunTimer.GOON) && !run.finishedRun && ____goalAffection < 10000)
                     {
                         ____goalAffection = 10000;
                         GameManager.System.Puzzle.Game.AddResourceValue(PuzzleGameResourceType.AFFECTION, 0, false);
@@ -148,7 +209,7 @@ namespace HunieMod
                     }
                 }
             }
-            if (run != null && run.chosenCategory == RunTimer.INTRO)
+            if (run != null && (run.chosenCategory == RunTimer.INTRO || run.chosenCategory == RunTimer.GOON))
             {
                 bool didSplit = false;
                 bool finalSplit = false;

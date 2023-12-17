@@ -111,7 +111,7 @@ namespace HunieMod
         [HarmonyPatch(typeof(PuzzleGame), "OnUpdate")]
         public static void DisplayOurInfo(PuzzleGame __instance, ref bool ____victory)
         {
-            if (preventAllUpdate && (____victory || BaseHunieModPlugin.lastChosenCategory == RunTimer.INTRO))
+            if (preventAllUpdate && (____victory || BaseHunieModPlugin.lastChosenCategory == RunTimer.INTRO || BaseHunieModPlugin.lastChosenCategory == RunTimer.GOON))
             {
                 ChangePuzzleUIText();
             }

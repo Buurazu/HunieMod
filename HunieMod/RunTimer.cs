@@ -13,9 +13,9 @@ namespace HunieMod
         {
             WHITE, BLUE, RED, GOLD
         }
-        public const int GETLAID = 0, GETLAIDKYU = 1, ALLMAINGIRLS = 2, ALLPANTIES = 3, HUNDREDPERCENT = 4, INTRO = 5, NONE = 6, ANYCATEGORY = 7;
-        public static string[] categories = new string[] { "Get Laid", "Get Laid + Kyu", "All Main Girls", "All Panties", "100%", "Intro%", "None", "Any Category" };
-        public static int[] goals = new int[] { 1, 2, 8, 12, 100, 10000 };
+        public const int GETLAID = 0, GETLAIDKYU = 1, ALLMAINGIRLS = 2, ALLPANTIES = 3, HUNDREDPERCENT = 4, INTRO = 5, GOON = 6, NONE = 7, ANYCATEGORY = 8;
+        public static string[] categories = new string[] { "Get Laid", "Get Laid + Kyu", "All Main Girls", "All Panties", "100%", "Intro%", "Goon%", "None", "Any Category" };
+        public static int[] goals = new int[] { 1, 2, 8, 12, 100, 10000, 10000 };
         public static string[] difficulties = new string[] { "Any Difficulty", "Easy", "Normal", "Hard" };
 
         //white, blue, red, gold
@@ -158,8 +158,9 @@ namespace HunieMod
             runFile = newFile;
             if (cat < categories.Length)
             {
-                //default to Normal
-                if (difficulty == 0 || cat == RunTimer.INTRO) difficulty = 2;
+                //default to Normal, except on Goon%
+                if (cat == RunTimer.GOON && difficulty == 0) difficulty = 1;
+                else if (difficulty == 0 || cat == RunTimer.INTRO) difficulty = 2;
                 if (cat == RunTimer.NONE)
                 {
                     category = ""; finishedRun = true; return;

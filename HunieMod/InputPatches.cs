@@ -17,8 +17,14 @@ namespace HunieMod
         public static bool mouseDown = false;
 
         public static List<KeyCode> mouseKeyboardKeys = new List<KeyCode>();
+        public static List<KeyCode> mashKeys = new List<KeyCode>();
 
         public static float[] prevAxises = new float[BaseHunieModPlugin.AXISES+1];
+
+        public static float mashTimer;
+        public static bool mashingThisFrame;
+        public static int targetFramerate;
+        public static float mashInterval;
 
         public const float DEADZONE = 0.5f;
 
@@ -30,6 +36,15 @@ namespace HunieMod
         {
             if (mashCheat && GameManager.System.GameState == GameState.SIM) return true;
             if (BaseHunieModPlugin.MouseWheelEnabled.Value && Input.GetAxis("Mouse ScrollWheel") != 0) return true;
+
+            if (mashingThisFrame)
+            {
+                for (int i = 0; i < mashKeys.Count; i++)
+                {
+                    if (Input.GetKey(mashKeys[i])) return true;
+                }
+            }
+
             if (BaseHunieModPlugin.AxisesEnabled.Value)
             {
                 for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)
@@ -51,6 +66,15 @@ namespace HunieMod
         {
             if (mashCheat && GameManager.System.GameState == GameState.SIM) return true;
             if (BaseHunieModPlugin.MouseWheelEnabled.Value && Input.GetAxis("Mouse ScrollWheel") != 0) return true;
+
+            if (mashingThisFrame)
+            {
+                for (int i = 0; i < mashKeys.Count; i++)
+                {
+                    if (Input.GetKey(mashKeys[i])) return true;
+                }
+            }
+
             if (BaseHunieModPlugin.AxisesEnabled.Value)
             {
                 for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)
@@ -72,6 +96,15 @@ namespace HunieMod
         {
             if (mashCheat && GameManager.System.GameState == GameState.SIM) return true;
             if (BaseHunieModPlugin.MouseWheelEnabled.Value && Input.GetAxis("Mouse ScrollWheel") != 0) return true;
+
+            if (mashingThisFrame)
+            {
+                for (int i = 0; i < mashKeys.Count; i++)
+                {
+                    if (Input.GetKey(mashKeys[i])) return true;
+                }
+            }
+
             if (BaseHunieModPlugin.AxisesEnabled.Value)
             {
                 for (int i = 0; i <= BaseHunieModPlugin.AXISES; i++)

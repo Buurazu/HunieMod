@@ -23,12 +23,12 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "4.1";
+        public const string PluginVersion = "4.22";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
         public static ConfigEntry<String> MouseKeys { get; private set; }
-        public static ConfigEntry<String> ControllerKeys { get; private set; }
+        public static ConfigEntry<String> MashKeys { get; private set; }
         public static ConfigEntry<KeyboardShortcut> ResetKey { get; private set; }
         public static ConfigEntry<KeyboardShortcut> ResetKey2 { get; private set; }
         public static ConfigEntry<Boolean> CensorshipEnabled { get; private set; }
@@ -47,9 +47,12 @@ namespace HunieMod
         public static ConfigEntry<Boolean> V1Drain { get; private set; }
         public static ConfigEntry<Boolean> CustomCGs { get; private set; }
         public static ConfigEntry<int> NikkisGlasses { get; private set; }
+        public static ConfigEntry<int> IntroLocation { get; private set; }
+
 
         public static Dictionary<string, ConfigEntry<int>> hairstylePreferences = new Dictionary<string, ConfigEntry<int>>();
         public static Dictionary<string,ConfigEntry<int>> outfitPreferences = new Dictionary<string, ConfigEntry<int>>();
+        public static Dictionary<string, ConfigEntry<bool>> goonPreferences = new Dictionary<string, ConfigEntry<bool>>();
 
         //hasReturned is used to display "This is for practice purposes" after a return to main menu, until you start a new file
         public static bool hasReturned = false;
@@ -72,6 +75,9 @@ namespace HunieMod
         public static bool seedMode = false;
         public static string seedString = "";
         public static string defaultSeed = "";
+        public static int goonChoice = -1;
+        public static KeyCode[] keyToGoon = { KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5,
+        KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.Minus, KeyCode.Equals };
 
         public static Dictionary<string, SpriteObject> customCG4 = new Dictionary<string, SpriteObject>();
         public static Dictionary<string, AudioClip> climaxSFX = new Dictionary<string, AudioClip>();
@@ -83,6 +89,10 @@ namespace HunieMod
                 "Settings", nameof(NikkisGlasses),
                 2,
                 "It was requested, idk\n0 = never show Nikki's glasses, 1 = always show Nikki's glasses, 2 = don't do anything");
+            IntroLocation = Config.Bind(
+                "Settings", nameof(IntroLocation),
+                13,
+                "Location for Intro%. Only date locations initialize puzzles right. Valid options: 14 = Botanical Garden, 6 = Corkscrew Carnival, 12 = Gold Falls Casino, 21 = Vinnie's Restaurant, 10 = Farmers Market, 16 = Hiking Trail, 15 = Hot Spring, 17 = Ice Rink, 13 = Outdoor Lounge (default), 20 = Scenic Overlook, 19 = Tennis Courts, 18 = Water Park");
 
             VsyncEnabled = Config.Bind(
                 "Settings", nameof(VsyncEnabled),
@@ -90,7 +100,7 @@ namespace HunieMod
                 "Enable or disable Vsync. The FPS cap below will only take effect with it disabled");
             FramerateCap = Config.Bind(
                 "Settings", nameof(FramerateCap),
-                144,
+                120,
                 "Set your framerate cap when Vsync is off. Valid values: 60, 120, 144, 170, 240, 300, 360. Higher FPS can help max mash speed, but it also means bonus round affection drains faster (especially on Hard)");
 
             MouseWheelEnabled = Config.Bind(
@@ -100,15 +110,15 @@ namespace HunieMod
             AxisesEnabled = Config.Bind(
                 "Settings", nameof(AxisesEnabled),
                 true,
-                "Enable or disable controller axises being treated as a click");
+                "Enable or disable controller axises (like control sticks) being treated as a click");
             MouseKeys = Config.Bind(
                 "Settings", nameof(MouseKeys),
                 "W, A, S, D, Q, E",
-                "The keys that will be treated as a click (set to None for no keyboard clicks)");
-            ControllerKeys = Config.Bind(
-                "Settings", nameof(ControllerKeys),
-                "JoystickButton0, JoystickButton1, JoystickButton2, JoystickButton3",
-                "The controller buttons that will be treated as a click (set to None for no controller clicks)");
+                "The keys and controller buttons that will be treated as a click (set to None for no bindings)");
+            MashKeys = Config.Bind(
+                "Settings", nameof(MashKeys),
+                "None",
+                "The keys and controller buttons that will be treated as clicking rapidly (set to None for no bindings)");
 
             ResetKey = Config.Bind(
                 "Settings", nameof(ResetKey),
@@ -166,6 +176,13 @@ namespace HunieMod
 
         void Start()
         {
+            //output all location names
+            /*
+            for (int i = 0; i < HunieMod.Definitions.Locations.Count; i++) {
+                BasePatches.Logger.LogMessage(HunieMod.Definitions.Locations[i].fullName);
+                BasePatches.Logger.LogMessage(HunieMod.Definitions.Locations[i].id);
+                BasePatches.Logger.LogMessage(HunieMod.Definitions.Locations[i].type);
+            }*/
             // Load outfit and hairstyle preferences from the config
             for (int i = 0; i < 12; i++)
             {
@@ -179,6 +196,7 @@ namespace HunieMod
                 hairstyles += "5 = Random"; outfits += "5 = Random";
                 hairstylePreferences.Add(gd.firstName, Config.Bind("Style", gd.firstName + "Hairstyle", 0, hairstyles));
                 outfitPreferences.Add(gd.firstName, Config.Bind("Style", gd.firstName + "Outfit", 0, outfits));
+                goonPreferences.Add(gd.firstName, Config.Bind("ToggleGoon", gd.firstName + "Enabled", true, "Enable or disable " + gd.firstName + " from being the random pick in Goon%"));
                 if (outfitPreferences[gd.firstName].Value == 4) swimsuitsChosen++;
             }
             // Load any custom SFX files located in the sfx folder
@@ -230,7 +248,15 @@ namespace HunieMod
                     FramerateCap.Value != 170 && FramerateCap.Value != 240 && FramerateCap.Value != 300 && FramerateCap.Value != 360)
                     FramerateCap.Value = 144;
                 Application.targetFrameRate = FramerateCap.Value;
+
+                InputPatches.targetFramerate = Application.targetFrameRate;
             }
+            else
+            {
+                InputPatches.targetFramerate = Screen.currentResolution.refreshRate;
+            }
+            //InputPatches.mashInterval = (1.0f / InputPatches.targetFramerate) + 0.0001f;
+            InputPatches.mashInterval = (1.0f / InputPatches.targetFramerate) * 1.1f;
 
             Harmony.CreateAndPatchAll(typeof(BasePatches), null);
 
@@ -238,6 +264,9 @@ namespace HunieMod
             if (!Directory.Exists("splits"))
             {
                 Directory.CreateDirectory("splits");
+            }
+            if (!Directory.Exists("splits/data"))
+            {
                 Directory.CreateDirectory("splits/data");
             }
 
@@ -263,8 +292,7 @@ namespace HunieMod
             if (InGameTimer.Value) Harmony.CreateAndPatchAll(typeof(RunTimerPatches), null);
             Harmony.CreateAndPatchAll(typeof(RNGPatches), null);
 
-            string both = MouseKeys.Value + "," + ControllerKeys.Value;
-            string[] keys = both.Split(',');
+            string[] keys = MouseKeys.Value.Split(',');
             string validKeycodes = "Mouse button bound to keys/buttons: ";
             for (int i = 0; i < keys.Length; i++)
             {
@@ -281,6 +309,25 @@ namespace HunieMod
                     validKeycodes += keys[i] + ", ";
                 }
             }
+
+            keys = MashKeys.Value.Split(',');
+            validKeycodes += "\nMashing bound to keys/buttons: ";
+            for (int i = 0; i < keys.Length; i++)
+            {
+                keys[i] = keys[i].Trim();
+                KeyCode kc = KeyCode.None;
+                try
+                {
+                    kc = (KeyCode)System.Enum.Parse(typeof(KeyCode), keys[i]);
+                }
+                catch { Logger.LogMessage(keys[i] + " is not a valid keycode name!"); }
+                if (kc != KeyCode.None)
+                {
+                    InputPatches.mashKeys.Add(kc);
+                    validKeycodes += keys[i] + ", ";
+                }
+            }
+
             Logger.LogMessage(validKeycodes);
             if (GameVersion() == JAN23) RunTimer.categories[RunTimer.HUNDREDPERCENT] = "100% (Jan. 23)";
         }
@@ -350,6 +397,13 @@ namespace HunieMod
                     break;
             }
         }
+        void PlayGoonLine(int line)
+        {
+            int version = GameVersion(); //0 = jan23, 1 = valentines
+            System.Random rand = new System.Random();
+            if (version == JAN23) PlayDialogAudio(11, rand.Next(4), rand.Next(3), line);
+            else PlayDialogAudio(12, rand.Next(4), rand.Next(3), line);
+        }
 
         private void OnApplicationQuit()
         {
@@ -360,6 +414,14 @@ namespace HunieMod
 
         private void Update() // Another Unity method
         {
+
+            //Logger.LogMessage((float)AccessTools.Field(typeof(PuzzleGame), "_bonusRoundDrainDelay")?.GetValue(GameManager.System.Puzzle.Game));
+            //Logger.LogMessage(GameManager.System.Player.tutorialStep);
+            //Logger.LogMessage(GameManager.System.Pauseable);
+            /*string mousewheelMessage = "Mouse wheel: " + Input.GetAxis("Mouse ScrollWheel");
+            if (Input.GetAxis("Mouse ScrollWheel") != 0) mousewheelMessage = "HIT! " + mousewheelMessage;
+            BasePatches.Logger.LogMessage(mousewheelMessage);*/
+
             //BasePatches.Logger.LogMessage(BaseHunieModPlugin.seedMode.ToString() + " " + BaseHunieModPlugin.seedString.ToString() + " " + BaseHunieModPlugin.defaultSeed.ToString());
 
             /*if (BaseHunieModPlugin.run == null)
@@ -375,6 +437,15 @@ namespace HunieMod
             Logger.LogMessage("alpha 2: " + GameManager.Stage.uiTop.buttonHuniebeeOverlay.spriteAlpha);*/
             //InputPatches.mouseWasDown = false; InputPatches.mouseWasClicked = false;
             CheatPatches.Update(); RunTimerPatches.Update();
+            InputPatches.mashTimer += Time.deltaTime;
+            InputPatches.mashingThisFrame = false;
+            if (InputPatches.mashTimer > InputPatches.mashInterval)
+            {
+                InputPatches.mashTimer -= InputPatches.mashInterval;
+                InputPatches.mashingThisFrame = true;
+            }
+            if (InputPatches.mashTimer > InputPatches.mashInterval) InputPatches.mashTimer = InputPatches.mashInterval;
+            //Logger.LogMessage(InputPatches.mashingThisFrame + "," + InputPatches.mashTimer + "," + InputPatches.mashInterval + "," + Time.deltaTime);
 
             if (GameManager.System.GameState == GameState.TITLE && BasePatches.titleScreenInteractive)
             {
@@ -413,6 +484,23 @@ namespace HunieMod
                     Harmony.CreateAndPatchAll(typeof(CheatPatches), null);
                     cheatsEnabled = true;
                     if (CheatSpeedEnabled.Value) GameManager.System.Hook.skipTransitionScreen = true;
+                }
+
+                //Read numbers, minus, backspace input for Goon%
+                if (!seedMode && lastChosenCategory == RunTimer.GOON)
+                {
+                    if (Input.GetKeyDown(KeyCode.Backspace))
+                    {
+                        goonChoice = -1;
+                    }
+                    for (int i = 0; i < keyToGoon.Length; i++)
+                    {
+                        if (Input.GetKeyDown(keyToGoon[i]))
+                        {
+                            goonChoice = i;
+                            PlayGoonLine(i);
+                        }
+                    }
                 }
 
                 //Read minus, numbers, and backspace input for the seed string
