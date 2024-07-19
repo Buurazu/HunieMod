@@ -23,7 +23,7 @@ namespace HunieMod
         /// <summary>
         /// The version of this plugin.
         /// </summary>
-        public const string PluginVersion = "4.22";
+        public const string PluginVersion = "4.4";
 
         public static Dictionary<string, int> ItemNameList = new Dictionary<string, int>();
 
@@ -75,6 +75,8 @@ namespace HunieMod
         public static bool seedMode = false;
         public static string seedString = "";
         public static string defaultSeed = "";
+        public static bool seedDates = true, seedStore = true, seedGifts = true, seedTalks = true;
+
         public static int goonChoice = -1;
         public static KeyCode[] keyToGoon = { KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5,
         KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9, KeyCode.Alpha0, KeyCode.Minus, KeyCode.Equals };
@@ -414,7 +416,7 @@ namespace HunieMod
 
         private void Update() // Another Unity method
         {
-
+            //Logger.LogMessage(((List<AudioLink>)AccessTools.Field(typeof(AudioManager), "_playingAudio")?.GetValue(GameManager.System.Audio)).Count);
             //Logger.LogMessage((float)AccessTools.Field(typeof(PuzzleGame), "_bonusRoundDrainDelay")?.GetValue(GameManager.System.Puzzle.Game));
             //Logger.LogMessage(GameManager.System.Player.tutorialStep);
             //Logger.LogMessage(GameManager.System.Pauseable);
@@ -506,6 +508,14 @@ namespace HunieMod
                 //Read minus, numbers, and backspace input for the seed string
                 if (seedMode)
                 {
+                    //Read Shift+DGST for toggling specific RNG manips
+                    if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                    {
+                        if (Input.GetKeyDown(KeyCode.D)) seedDates = !seedDates;
+                        if (Input.GetKeyDown(KeyCode.G)) seedGifts = !seedGifts;
+                        if (Input.GetKeyDown(KeyCode.S)) seedStore = !seedStore;
+                        if (Input.GetKeyDown(KeyCode.T)) seedTalks = !seedTalks;
+                    }
                     if (Input.GetKeyDown(KeyCode.Backspace) && seedString != "")
                     {
                         seedString = seedString.Remove(seedString.Length - 1, 1);
@@ -523,11 +533,22 @@ namespace HunieMod
                     string seedText = "Seed: ";
                     if (seedString != "") seedText += seedString;
                     else seedText += defaultSeed;
+
+                    string seedText2 = "Seeding";
+                    if (seedDates) seedText2 += " Dates,";
+                    if (seedGifts) seedText2 += " Gifts,";
+                    if (seedStore) seedText2 += " Store,";
+                    if (seedTalks) seedText2 += " Talks,";
+                    if (seedText2 == "Seeding") seedText2 = "Seeding Nothing???";
+                    seedText2 = seedText2.TrimEnd(',');
+
                     BasePatches.seedText.SetText(seedText);
+                    BasePatches.seedText2.SetText(seedText2);
                 }
                 else
                 {
                     BasePatches.seedText.SetText("");
+                    BasePatches.seedText2.SetText("");
                 }
                 if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
                 {

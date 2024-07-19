@@ -92,10 +92,9 @@ namespace HunieMod
                     else
                     */
                     {
-                        if (!Input.GetKey(KeyCode.LeftControl) && !Input.GetKey(KeyCode.RightControl))
-                        {
-                            refreshingPuzzle = true;
-                        }
+                        if (!Input.GetKey(KeyCode.LeftControl) && !Input.GetKey(KeyCode.RightControl)) refreshingPuzzle = true;
+                        else refreshingPuzzle = false;
+
                         GameUtil.ShowNotification(CellNotificationType.MESSAGE, "Restarting the date!");
                         GameManager.Stage.uiPuzzle.puzzleStatus.UpdatePuzzleEffects(null);
                         AccessTools.Method(typeof(PuzzleManager), "HidePuzzleGrid").Invoke(GameManager.System.Puzzle, null);

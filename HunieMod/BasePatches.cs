@@ -24,7 +24,7 @@ namespace HunieMod
         public static LabelObject currentDifficulty;
         public static LabelObject PBtext;
         public static LabelObject SOBtext;
-        public static LabelObject seedText;
+        public static LabelObject seedText, seedText2;
 
         public static BepInEx.Logging.ManualLogSource Logger = BepInEx.Logging.Logger.CreateLogSource("BasePatches");
 
@@ -603,6 +603,7 @@ namespace HunieMod
                 PBtext = UnityEngine.Object.Instantiate(__instance.saveFiles[0].dataLocationLabel) as LabelObject;
                 SOBtext = UnityEngine.Object.Instantiate(__instance.saveFiles[0].dataLocationLabel) as LabelObject;
                 seedText = UnityEngine.Object.Instantiate(__instance.saveFiles[0].dataLocationLabel) as LabelObject;
+                seedText2 = UnityEngine.Object.Instantiate(__instance.saveFiles[0].dataLocationLabel) as LabelObject;
                 int ypos = 155; int yoffset = 20;
                 int xpos = 600; int offset = 85; int diff = 120;
                 //centered vertically, large difference horizontally
@@ -623,6 +624,8 @@ namespace HunieMod
                 InitializeOurThing(SOBtext, ourContainer, xpos + offset - 5, ypos - yoffset * 3);
                 InitializeOurThing(seedText, ourContainer, xpos + offset * 4 - 5, ypos);
                 seedText.SetText("");
+                InitializeOurThing(seedText2, ourContainer, xpos + offset * 4 - 5, ypos - 30);
+                seedText2.SetText("");
                 SOBtext.label.color = new Color(221 / 256f, 175 / 256f, 76 / 256f, 0);
                 currentDifficulty.SetText(RunTimer.difficulties[BaseHunieModPlugin.lastChosenDifficulty]);
                 currentCategory.SetText(RunTimer.categories[BaseHunieModPlugin.lastChosenCategory]);
@@ -661,21 +664,78 @@ namespace HunieMod
             }
         }
 
-        [HarmonyPrefix]
+        public static Dictionary<string, AudioSource> customsPlaying = new Dictionary<string, AudioSource>();
+        public static AudioSource curBGM;
+        public static AudioSource ourBGM;
+
+        [HarmonyPostfix]
         [HarmonyPatch(typeof(AudioManager), "Play", typeof(AudioCategory), typeof(AudioDefinition), typeof(bool), typeof(float), typeof(bool))]
-        public static void ReplaceAnySFX(AudioDefinition audioDefinition, float volume)
+        public static void ReplaceAnySFX(AudioCategory category, AudioDefinition audioDefinition, float volume, AudioLink __result)
         {
             if (audioDefinition == null || audioDefinition.clip == null) return;
             AudioClip newSFX;
+            AudioSource prevSFX;
+
+            // in case of any issues, stop our BGM whenever a new music track is played
+            if (category == AudioCategory.MUSIC)
+            {
+                if (ourBGM) ourBGM.Stop();
+                ourBGM = null;
+                curBGM = null;
+            }
+
             if (BaseHunieModPlugin.customSFX.TryGetValue(audioDefinition.clip.name, out newSFX))
             {
-                AudioSource audioSource = GameManager.System.gameCamera.gameObject.AddComponent("AudioSource") as AudioSource;
-                audioSource.clip = newSFX;
-                audioSource.volume *= GameManager.System.settingsSoundVol / 10f;
-                audioSource.Play();
+                int volSetting = GameManager.System.settingsVoiceVol;
+                if (category == AudioCategory.SOUND) volSetting = GameManager.System.settingsSoundVol;
+
+                // Track the currently playing BGM differently
+                if (category == AudioCategory.MUSIC)
+                {
+                    curBGM = __result.audioSource;
+                    curBGM.Pause();
+
+                    AudioSource audioSource = GameManager.System.gameCamera.gameObject.AddComponent("AudioSource") as AudioSource;
+                    audioSource.clip = newSFX;
+                    audioSource.volume = curBGM.volume;
+                    audioSource.loop = true;
+                    audioSource.Play();
+                    ourBGM = audioSource;
+                }
+                else if (customsPlaying.TryGetValue(audioDefinition.clip.name, out prevSFX))
+                {
+                    prevSFX.volume = volume * (volSetting / 10f);
+                    if (prevSFX.isPlaying) { prevSFX.time = 0; }
+                    else { prevSFX.Play(); }
+                }
+                else
+                {
+                    AudioSource audioSource = GameManager.System.gameCamera.gameObject.AddComponent("AudioSource") as AudioSource;
+                    audioSource.clip = newSFX;
+                    audioSource.volume = volume * (volSetting / 10f);
+                    audioSource.Play();
+                    customsPlaying.Add(audioDefinition.clip.name, audioSource);
+                }
             }
         }
-        
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(AudioLink), "IsComplete")]
+        public static bool SpoofingBGMStatus(AudioLink __instance, ref bool __result, bool ____fadingOut)
+        {
+            if (__instance.audioSource == curBGM)
+            {
+                __result = (____fadingOut && __instance.audioSource.volume == 0f);
+                if (ourBGM)
+                {
+                    ourBGM.volume = curBGM.volume;
+                    if (__result) ourBGM.Stop();
+                }
+                return false;
+            }
+            return true;
+        }
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(UIPhotoGallery), "ShowPhotoGallery")]
         public static void PlayFunnyCG4SFX(GirlDefinition initialPhotoGirl, bool singlePhotoMode)
@@ -683,12 +743,23 @@ namespace HunieMod
             if (singlePhotoMode)
             {
                 AudioClip newSFX;
+                AudioSource prevSFX;
                 if (BaseHunieModPlugin.climaxSFX.TryGetValue(initialPhotoGirl.firstName.ToLower(), out newSFX))
                 {
-                    AudioSource audioSource = GameManager.System.gameCamera.gameObject.AddComponent("AudioSource") as AudioSource;
-                    audioSource.clip = newSFX;
-                    audioSource.volume *= GameManager.System.settingsSoundVol / 10f;
-                    audioSource.Play();
+                    if (customsPlaying.TryGetValue(initialPhotoGirl.firstName.ToLower(), out prevSFX))
+                    {
+                        prevSFX.volume = GameManager.System.settingsSoundVol / 10f;
+                        if (prevSFX.isPlaying) { prevSFX.time = 0; }
+                        else { prevSFX.Play(); }
+                    }
+                    else
+                    {
+                        AudioSource audioSource = GameManager.System.gameCamera.gameObject.AddComponent("AudioSource") as AudioSource;
+                        audioSource.clip = newSFX;
+                        audioSource.volume *= GameManager.System.settingsSoundVol / 10f;
+                        audioSource.Play();
+                        customsPlaying.Add(initialPhotoGirl.firstName.ToLower(), audioSource);
+                    }
                 }
             }
         }

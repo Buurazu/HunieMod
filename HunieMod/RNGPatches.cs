@@ -33,12 +33,12 @@ namespace HunieMod
             ourSeed = seed;
             BasePatches.Logger.LogMessage("Seed: " + seed);
             curRandom = null;
-            dateRandom = new System.Random(seed);
+            if (BaseHunieModPlugin.seedDates) dateRandom = new System.Random(seed);
             curDateRandom = null;
             powerTokenRandom = null;
-            dateGiftRandom = new System.Random(seed - 1000);
-            storeRandom = new System.Random(seed - 2000);
-            talkRandom = new System.Random(seed - 3000);
+            if (BaseHunieModPlugin.seedGifts) dateGiftRandom = new System.Random(seed - 1000);
+            if (BaseHunieModPlugin.seedStore) storeRandom = new System.Random(seed - 2000);
+            if (BaseHunieModPlugin.seedTalks) talkRandom = new System.Random(seed - 3000);
         }
         public static void WipeRNG()
         {
@@ -88,16 +88,17 @@ namespace HunieMod
         [HarmonyPatch(typeof(PuzzleGame), "Begin")]
         public static void PerDateRNG()
         {
-            if (!BaseHunieModPlugin.seedMode) return;
+            if (!BaseHunieModPlugin.seedMode || dateRandom == null) return;
             if (CheatPatches.refreshingPuzzle)
             {
-                CheatPatches.refreshingPuzzle = false;
+                
             }
             else if (dateRandom != null)
             {
                 currentDateSeed = dateRandom.Next();
                 currentPowerSeed = dateRandom.Next();
             }
+            CheatPatches.refreshingPuzzle = false;
             curDateRandom = new System.Random(currentDateSeed);
             powerTokenRandom = new System.Random(currentPowerSeed);
             inPuzzleBegin = true;

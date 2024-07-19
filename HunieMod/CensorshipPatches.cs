@@ -160,7 +160,8 @@ namespace HunieMod
                 __instance.ChangeStyle(girlDefinition.outfits[0].artIndex, true);
         }
 
-        // mute sex SFX
+        // mute sex
+        // 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(AudioManager), "Play", typeof(AudioCategory), typeof(AudioDefinition), typeof(bool), typeof(float), typeof(bool))]
         public static void SilenceTheMoans(AudioDefinition audioDefinition, ref float volume)
